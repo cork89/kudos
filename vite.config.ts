@@ -163,7 +163,7 @@ export default defineConfig({
     outDir: resolve(rootDir, 'dist/server'),
     platform: 'node',
     target: 'node24',
-    format: 'cjs',
+    format: 'esm',
     clean: true,
     sourcemap: true,
     minify: {

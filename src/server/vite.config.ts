@@ -9,14 +9,14 @@ export default defineConfig({
     emptyOutDir: true,
     ssr: 'index.ts',
     outDir: '../../dist/server',
-    target: 'node22',
+    target: 'node24',
     sourcemap: false,
     minify: true,
     rollupOptions: {
       external: [...builtinModules],
       output: {
-        format: 'cjs',
-        entryFileNames: 'index.cjs',
+        format: 'esm',
+        entryFileNames: 'index.mjs',
         inlineDynamicImports: true,
         // format: 'es',
         // entryFileNames: 'index.js',
