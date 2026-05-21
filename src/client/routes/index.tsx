@@ -1,19 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Preview } from "../components/Preview";
-import { useHomeQuery } from "../lib/queries";
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Preview } from '../components/Preview';
+import { useHomeQuery } from '../lib/queries';
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
 function HomePage() {
   const { data, isLoading, error } = useHomeQuery();
 
-  const previewData = data?.status === "ok" ? data.data : undefined;
+  const previewData = data?.status === 'ok' ? data.data : undefined;
   const fallback =
-    data?.status === "empty"
+    data?.status === 'empty'
       ? data.message
-      : "Save a comment to preview it here.";
+      : 'Save a comment to preview it here.';
 
   return (
     <div className="container">
@@ -28,8 +28,8 @@ function HomePage() {
           <div className="canvas-header">
             <span className="canvas-title">Canvas Preview</span>
             <div className="canvas-meta">
-              <span>{isLoading ? "Loading" : "1 Comment"}</span>
-              <span>{error ? "Offline" : "Updated"}</span>
+              <span>{isLoading ? 'Loading' : '1 Comment'}</span>
+              <span>{error ? 'Offline' : 'Updated'}</span>
             </div>
           </div>
           <div className="canvas-content">

@@ -1,18 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Preview } from "../components/Preview";
-import { saveSettings } from "../lib/api";
-import { useEditQuery } from "../lib/queries";
-import { CommentPosition, PostSettings, Theme } from "../../shared/types/api";
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Preview } from '../components/Preview';
+import { saveSettings } from '../lib/api';
+import { useEditQuery } from '../lib/queries';
+import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
-export const Route = createFileRoute("/edit")({
+export const Route = createFileRoute('/edit')({
   component: EditPage,
 });
 
 const defaultSettings: PostSettings = {
-  position: "center",
-  theme: "dark",
+  position: 'center',
+  theme: 'dark',
   toolbarCollapsed: false,
 };
 
@@ -23,7 +23,7 @@ function EditPage() {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (data?.status === "ok" && data.data.settings) {
+    if (data?.status === 'ok' && data.data.settings) {
       setSettings({
         ...defaultSettings,
         ...data.data.settings,
@@ -35,17 +35,17 @@ function EditPage() {
   const mutation = useMutation({
     mutationFn: saveSettings,
     onSuccess: () => {
-      setToast("Settings saved!");
+      setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
     },
     onError: () => {
-      setToast("Failed to save.");
+      setToast('Failed to save.');
       setTimeout(() => setToast(null), 2000);
     },
   });
 
   const previewData = useMemo(() => {
-    if (data?.status !== "ok") return undefined;
+    if (data?.status !== 'ok') return undefined;
     return {
       ...data.data,
       settings,
@@ -105,7 +105,7 @@ function EditPage() {
         </button>
       </div>
 
-      <div className={`toolbar ${collapsed ? "collapsed" : ""}`}>
+      <div className={`toolbar ${collapsed ? 'collapsed' : ''}`}>
         <button
           className="toolbar-toggle"
           type="button"
@@ -132,11 +132,11 @@ function EditPage() {
             <span className="toolbar-label">Theme</span>
             <div className="toggle-pills">
               <button
-                className={`pill ${settings.theme === "dark" ? "active" : ""}`}
+                className={`pill ${settings.theme === 'dark' ? 'active' : ''}`}
                 data-theme="dark"
                 type="button"
                 title="Dark mode"
-                onClick={() => updateTheme("dark")}
+                onClick={() => updateTheme('dark')}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -148,11 +148,11 @@ function EditPage() {
                 </svg>
               </button>
               <button
-                className={`pill ${settings.theme === "light" ? "active" : ""}`}
+                className={`pill ${settings.theme === 'light' ? 'active' : ''}`}
                 data-theme="light"
                 type="button"
                 title="Light mode"
-                onClick={() => updateTheme("light")}
+                onClick={() => updateTheme('light')}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -173,20 +173,20 @@ function EditPage() {
             <div className="position-grid">
               {(
                 [
-                  "top-left",
-                  "top-center",
-                  "top-right",
-                  "center-left",
-                  "center",
-                  "center-right",
-                  "bottom-left",
-                  "bottom-center",
-                  "bottom-right",
+                  'top-left',
+                  'top-center',
+                  'top-right',
+                  'center-left',
+                  'center',
+                  'center-right',
+                  'bottom-left',
+                  'bottom-center',
+                  'bottom-right',
                 ] as CommentPosition[]
               ).map((pos) => (
                 <button
                   key={pos}
-                  className={`pos-btn ${settings.position === pos ? "active" : ""}`}
+                  className={`pos-btn ${settings.position === pos ? 'active' : ''}`}
                   data-position={pos}
                   type="button"
                   onClick={() => updatePosition(pos)}

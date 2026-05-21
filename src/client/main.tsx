@@ -1,15 +1,19 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { RouterProvider, createRouter, createHashHistory } from "@tanstack/react-router";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { QueryClient } from "@tanstack/react-query";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import localforage from "localforage";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import {
+  RouterProvider,
+  createRouter,
+  createHashHistory,
+} from '@tanstack/react-router';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { QueryClient } from '@tanstack/react-query';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import localforage from 'localforage';
 
-import { routeTree } from "./routeTree.gen";
-import "./styles/test2.css";
-import "./styles/view.css";
-import "./styles/edit.css";
+import { routeTree } from './routeTree.gen';
+import './styles/test2.css';
+import './styles/view.css';
+import './styles/edit.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,15 +33,15 @@ const router = createRouter({
   history: createHashHistory(),
 });
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
 }
 
-const rootElement = document.getElementById("root");
+const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Root element not found");
+  throw new Error('Root element not found');
 }
 
 ReactDOM.createRoot(rootElement).render(

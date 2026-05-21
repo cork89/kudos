@@ -1,18 +1,18 @@
-import type { PreviewData } from "../../shared/types/api";
+import type { PreviewData } from '../../shared/types/api';
 
 type PreviewProps = {
-  data?: PreviewData;
-  fallbackText?: string;
+  data?: PreviewData | undefined;
+  fallbackText?: string | undefined;
 };
 
 function getInitials(name?: string) {
-  if (!name) return "??";
+  if (!name) return '??';
   const parts = name.trim().split(/\s+/);
   const initials = parts
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
-    .join("");
-  return initials || "??";
+    .join('');
+  return initials || '??';
 }
 
 export function Preview({ data, fallbackText }: PreviewProps) {
@@ -25,23 +25,23 @@ export function Preview({ data, fallbackText }: PreviewProps) {
             <span className="comment-author">No data</span>
           </div>
           <p className="comment-text">
-            {fallbackText ?? "Save a comment to preview it here."}
+            {fallbackText ?? 'Save a comment to preview it here.'}
           </p>
         </div>
       </div>
     );
   }
 
-  const themeClass = data.settings?.theme === "light" ? "light-theme" : "";
+  const themeClass = data.settings?.theme === 'light' ? 'light-theme' : '';
   const positionClass = data.settings?.position
     ? `pos-${data.settings.position}`
-    : "pos-center";
+    : 'pos-center';
 
   return (
     <div className="image-container" id="image-container">
       <img
-        src={data.post.imageUrl ?? "/default-loading.webp"}
-        alt={data.post.title ?? "preview"}
+        src={data.post.imageUrl ?? '/default-loading.webp'}
+        alt={data.post.title ?? 'preview'}
       />
       <div
         className={`comment-overlay ${positionClass} ${themeClass}`.trim()}

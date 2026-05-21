@@ -17,7 +17,7 @@
 }
 
 body {
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   background: var(--bg-deep);
   color: var(--text-primary);
   min-height: 100vh;
@@ -26,10 +26,11 @@ body {
 }
 
 body::before {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       ellipse 80% 50% at 20% -10%,
       rgba(232, 255, 74, 0.08) 0%,
       transparent 50%
@@ -44,7 +45,7 @@ body::before {
 }
 
 body::after {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
@@ -80,7 +81,7 @@ header {
 }
 
 .logo h1 {
-  font-family: "Syne", sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -139,7 +140,7 @@ main {
 }
 
 .canvas-meta span::before {
-  content: "";
+  content: '';
   width: 6px;
   height: 6px;
   background: var(--accent);
@@ -175,7 +176,8 @@ main {
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   max-width: 320px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4),
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   width: 90%;
 }
@@ -268,7 +270,7 @@ main {
 }
 
 .comment-author {
-  font-family: "Syne", sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -288,7 +290,8 @@ main {
 .light-theme.comment-overlay {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(100, 100, 100, 0.3);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15),
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(0, 0, 0, 0.05) inset;
 }
 
@@ -337,7 +340,7 @@ main {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -347,7 +350,7 @@ main {
 }
 
 .btn::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 0;

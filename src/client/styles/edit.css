@@ -36,7 +36,7 @@
 }
 
 .top-bar-title {
-  font-family: "Syne", sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -208,7 +208,7 @@
 }
 
 .pos-btn::after {
-  content: "";
+  content: '';
   position: absolute;
   width: 6px;
   height: 6px;
@@ -234,44 +234,44 @@
   background: var(--accent);
 }
 
-.pos-btn[data-position="top-left"]::after {
+.pos-btn[data-position='top-left']::after {
   top: 4px;
   left: 4px;
 }
-.pos-btn[data-position="top-center"]::after {
+.pos-btn[data-position='top-center']::after {
   top: 4px;
   left: 50%;
   transform: translateX(-50%);
 }
-.pos-btn[data-position="top-right"]::after {
+.pos-btn[data-position='top-right']::after {
   top: 4px;
   right: 4px;
 }
-.pos-btn[data-position="center-left"]::after {
+.pos-btn[data-position='center-left']::after {
   top: 50%;
   left: 4px;
   transform: translateY(-50%);
 }
-.pos-btn[data-position="center"]::after {
+.pos-btn[data-position='center']::after {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.pos-btn[data-position="center-right"]::after {
+.pos-btn[data-position='center-right']::after {
   top: 50%;
   right: 4px;
   transform: translateY(-50%);
 }
-.pos-btn[data-position="bottom-left"]::after {
+.pos-btn[data-position='bottom-left']::after {
   bottom: 4px;
   left: 4px;
 }
-.pos-btn[data-position="bottom-center"]::after {
+.pos-btn[data-position='bottom-center']::after {
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
 }
-.pos-btn[data-position="bottom-right"]::after {
+.pos-btn[data-position='bottom-right']::after {
   bottom: 4px;
   right: 4px;
 }
@@ -286,7 +286,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   color: var(--text-muted);
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -315,13 +315,21 @@
 }
 
 #comment-overlay {
-  transition: top 0.3s ease, bottom 0.3s ease, left 0.3s ease, right 0.3s ease,
-    transform 0.3s ease, background 0.3s ease, border-color 0.3s ease,
+  transition:
+    top 0.3s ease,
+    bottom 0.3s ease,
+    left 0.3s ease,
+    right 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease,
+    border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
 
 #comment-overlay * {
-  transition: color 0.3s ease, background 0.3s ease;
+  transition:
+    color 0.3s ease,
+    background 0.3s ease;
 }
 
 .toast {
@@ -333,7 +341,7 @@
   color: var(--bg-deep);
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   font-weight: 500;
   z-index: 200;

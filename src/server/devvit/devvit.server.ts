@@ -4,6 +4,6 @@ import {
   getServerPort,
   reddit,
   redis,
-} from "@devvit/web/server";
+} from '@devvit/web/server';
 
 export { createServer, context, getServerPort, reddit, redis };

@@ -30,13 +30,13 @@ export type PreviewComment = {
   body: string;
   authorName: string;
   authorId: string;
-  snoovatarUrl?: string;
+  snoovatarUrl?: string | undefined;
 };
 
 export type PreviewPost = {
   id: string;
-  title?: string;
-  imageUrl?: string;
+  title?: string | undefined;
+  imageUrl?: string | undefined;
 };
 
 export type PreviewData = {
@@ -44,7 +44,7 @@ export type PreviewData = {
   commentId: string;
   comment: PreviewComment;
   post: PreviewPost;
-  settings?: PostSettings;
+  settings?: PostSettings | undefined;
 };
 
 export type ApiPreviewResponse =

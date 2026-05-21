@@ -112,88 +112,90 @@ async function writeWebResponse(
   res.end(body);
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, rootDir, '');
-  const useMocks = env.USE_MOCKS === 'true';
+// Static export required: Oxc reads `lint` / `fmt` from vite.config.ts without
+// executing Vite's config loader, so functional configs are not supported.
+// https://viteplus.dev/guide/troubleshooting#vp-lint-vp-fmt-may-fail-to-read-vite-config-ts
+const env = loadEnv(
+  process.env.MODE ?? process.env.NODE_ENV ?? 'development',
+  rootDir,
+  ''
+);
+const useMocks = env.USE_MOCKS === 'true';
 
-  return {
-    root: clientRoot,
-    publicDir: resolve(rootDir, 'assets'),
-    resolve: {
-      alias: useMocks ? { '@devvit/web/server': devvitServerMock } : undefined,
-    },
-    plugins: [
-      react({
-        // babel: {
-        //   plugins: ['babel-plugin-react-compiler'],
-        // },
-      }),
-      tanstackRouter({
-        routesDirectory: resolve(clientRoot, 'routes'),
-        generatedRouteTree: resolve(clientRoot, 'routeTree.gen.ts'),
-      }),
-      localApiPlugin(),
-    ],
-    server: {
-      port: 7474,
-    },
-    preview: {
-      port: 7474,
-    },
-    build: {
-      outDir: resolve(rootDir, 'dist/client'),
-      emptyOutDir: true,
-      sourcemap: true,
-      minify: true,
-      rolldownOptions: {
-        input: {
-          default: resolve(clientRoot, 'index.html'),
-        },
-        output: {
-          entryFileNames: '[name].js',
-          chunkFileNames: '[name].js',
-          assetFileNames: '[name][extname]',
-        },
+export default defineConfig({
+  root: clientRoot,
+  publicDir: resolve(rootDir, 'assets'),
+  resolve: {
+    alias: useMocks ? { '@devvit/web/server': devvitServerMock } : undefined,
+  },
+  plugins: [
+    react(),
+    tanstackRouter({
+      routesDirectory: resolve(clientRoot, 'routes'),
+      generatedRouteTree: resolve(clientRoot, 'routeTree.gen.ts'),
+    }),
+    localApiPlugin(),
+  ],
+  server: {
+    port: 7474,
+  },
+  preview: {
+    port: 7474,
+  },
+  build: {
+    outDir: resolve(rootDir, 'dist/client'),
+    emptyOutDir: true,
+    sourcemap: true,
+    minify: true,
+    rolldownOptions: {
+      input: {
+        default: resolve(clientRoot, 'index.html'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name][extname]',
       },
     },
-    pack: {
-      entry: [productionServerEntry],
-      outDir: resolve(rootDir, 'dist/server'),
-      platform: 'node',
-      target: 'node24',
-      format: 'cjs',
-      clean: true,
-      sourcemap: true,
-      minify: {
-        compress: {
-          dropConsole: false,
-        },
-      },
-      outExtensions: () => ({ js: '.js' }),
-      deps: {
-        alwaysBundle: [/.*/],
+  },
+  pack: {
+    entry: [productionServerEntry],
+    outDir: resolve(rootDir, 'dist/server'),
+    platform: 'node',
+    target: 'node24',
+    format: 'cjs',
+    clean: true,
+    sourcemap: true,
+    minify: {
+      compress: {
+        dropConsole: false,
       },
     },
-    lint: {
-      options: {
-        typeAware: true,
-        typeCheck: true,
-      },
+    outExtensions: () => ({ js: '.js' }),
+    deps: {
+      alwaysBundle: [/.*/],
     },
-    fmt: {
-      singleQuote: true,
-      trailingComma: 'es5',
-      quoteProps: 'preserve',
-      semi: true,
-      printWidth: 80,
-      sortPackageJson: false,
-      ignorePatterns: [],
+  },
+  lint: {
+    ignorePatterns: ['src/client/routeTree.gen.ts'],
+    options: {
+      typeAware: true,
+      typeCheck: true,
     },
-    test: {
-      root: rootDir,
-      environment: 'node',
-      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-      maxWorkers: 1,
-    },
-  };
+  },
+  fmt: {
+    singleQuote: true,
+    trailingComma: 'es5',
+    quoteProps: 'preserve',
+    semi: true,
+    printWidth: 80,
+    sortPackageJson: false,
+    ignorePatterns: ['src/client/routeTree.gen.ts'],
+  },
+  test: {
+    root: rootDir,
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    maxWorkers: 1,
+  },
 });
