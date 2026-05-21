@@ -8,7 +8,8 @@
     "build": "vp build && vp pack",
     "build:client": "vp build",
     "build:server": "vp pack",
-    "preview": "vp preview"
+    "preview": "vp preview",
+    "devvit": "devvit playtest"
   },
   "dependencies": {
     "@devvit/web": "0.12.24",

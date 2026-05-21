@@ -343,6 +343,8 @@ app.post("/internal/menu/add-to-commenteer", async (c) => {
   }
 });
 
+export default app;
+
 const port = getServerPort();
 
 const requestHandler = async (req: IncomingMessage, res: ServerResponse) => {
@@ -385,8 +387,10 @@ const requestHandler = async (req: IncomingMessage, res: ServerResponse) => {
   }
 };
 
-const server = createServer(requestHandler);
-server.on("error", (err: any) => console.error(`server error; ${err.stack}`));
-server.listen(port);
-
-console.log(`started server on port ${port}`);
+// Vite dev loads this module via ssrLoadModule (import.meta.hot is set); skip standalone server.
+if (!import.meta.hot) {
+  const server = createServer(requestHandler);
+  server.on("error", (err: any) => console.error(`server error; ${err.stack}`));
+  server.listen(port);
+  console.log(`started server on port ${port}`);
+}

@@ -3,11 +3,13 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { tanstackRouter } from '@tanstack/router-vite-plugin';
-import { defineConfig, type Plugin } from 'vite-plus';
+import { defineConfig, loadEnv, type Plugin } from 'vite-plus';
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
 const clientRoot = resolve(rootDir, 'src/client');
-const localServerEntry = resolve(rootDir, 'src/server/indexlocal.ts');
+const localServerEntry = resolve(rootDir, 'src/server/index.ts');
+const productionServerEntry = resolve(rootDir, 'src/server/index.ts');
+const devvitServerMock = resolve(rootDir, 'src/server/devvit/devvit.mock.ts');
 
 function localApiPlugin(): Plugin {
   type LocalAppModule = {
@@ -110,62 +112,88 @@ async function writeWebResponse(
   res.end(body);
 }
 
-export default defineConfig({
-  root: clientRoot,
-  publicDir: resolve(rootDir, 'assets'),
-  plugins: [
-    react({
-      // babel: {
-      //   plugins: ['babel-plugin-react-compiler'],
-      // },
-    }),
-    tanstackRouter({
-      routesDirectory: './routes',
-      generatedRouteTree: './routeTree.gen.ts',
-    }),
-    localApiPlugin(),
-  ],
-  server: {
-    port: 7474,
-  },
-  preview: {
-    port: 7474,
-  },
-  build: {
-    outDir: resolve(rootDir, 'dist/client'),
-    emptyOutDir: true,
-    sourcemap: true,
-    minify: true,
-    rolldownOptions: {
-      input: {
-        default: resolve(clientRoot, 'index.html'),
-      },
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name][extname]',
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, rootDir, '');
+  const useMocks = env.USE_MOCKS === 'true';
+
+  return {
+    root: clientRoot,
+    publicDir: resolve(rootDir, 'assets'),
+    resolve: {
+      alias: useMocks ? { '@devvit/web/server': devvitServerMock } : undefined,
+    },
+    plugins: [
+      react({
+        // babel: {
+        //   plugins: ['babel-plugin-react-compiler'],
+        // },
+      }),
+      tanstackRouter({
+        routesDirectory: resolve(clientRoot, 'routes'),
+        generatedRouteTree: resolve(clientRoot, 'routeTree.gen.ts'),
+      }),
+      localApiPlugin(),
+    ],
+    server: {
+      port: 7474,
+    },
+    preview: {
+      port: 7474,
+    },
+    build: {
+      outDir: resolve(rootDir, 'dist/client'),
+      emptyOutDir: true,
+      sourcemap: true,
+      minify: true,
+      rolldownOptions: {
+        input: {
+          default: resolve(clientRoot, 'index.html'),
+        },
+        output: {
+          entryFileNames: '[name].js',
+          chunkFileNames: '[name].js',
+          assetFileNames: '[name][extname]',
+        },
       },
     },
-  },
-  lint: {
-    options: {
-      typeAware: true,
-      typeCheck: true,
+    pack: {
+      entry: [productionServerEntry],
+      outDir: resolve(rootDir, 'dist/server'),
+      platform: 'node',
+      target: 'node24',
+      format: 'cjs',
+      clean: true,
+      sourcemap: true,
+      minify: {
+        compress: {
+          dropConsole: false,
+        },
+      },
+      outExtensions: () => ({ js: '.js' }),
+      deps: {
+        alwaysBundle: [/.*/],
+      },
     },
-  },
-  fmt: {
-    singleQuote: true,
-    trailingComma: 'es5',
-    quoteProps: 'preserve',
-    semi: true,
-    printWidth: 80,
-    sortPackageJson: false,
-    ignorePatterns: [],
-  },
-  test: {
-    root: rootDir,
-    environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    maxWorkers: 1,
-  },
+    lint: {
+      options: {
+        typeAware: true,
+        typeCheck: true,
+      },
+    },
+    fmt: {
+      singleQuote: true,
+      trailingComma: 'es5',
+      quoteProps: 'preserve',
+      semi: true,
+      printWidth: 80,
+      sortPackageJson: false,
+      ignorePatterns: [],
+    },
+    test: {
+      root: rootDir,
+      environment: 'node',
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      maxWorkers: 1,
+    },
+  };
 });
