@@ -1,5 +1,171 @@
-import { defineConfig } from "vite-plus";
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import react from '@vitejs/plugin-react';
+import { tanstackRouter } from '@tanstack/router-vite-plugin';
+import { defineConfig, type Plugin } from 'vite-plus';
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
+const clientRoot = resolve(rootDir, 'src/client');
+const localServerEntry = resolve(rootDir, 'src/server/indexlocal.ts');
+
+function localApiPlugin(): Plugin {
+  type LocalAppModule = {
+    default: { fetch(request: Request): Promise<Response> };
+  };
+
+  async function handleApiRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+    loadApp: () => Promise<Record<string, unknown>>
+  ): Promise<void> {
+    const mod = (await loadApp()) as LocalAppModule;
+    const response = await mod.default.fetch(await createWebRequest(req));
+    await writeWebResponse(res, response);
+  }
+
+  return {
+    name: 'local-api-middleware',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.startsWith('/client/')) {
+          req.url = req.url.replace(/^\/client/, '') || '/';
+        }
+
+        const pathname = req.url
+          ? new URL(req.url, getOrigin(req)).pathname
+          : '/';
+        if (!pathname.startsWith('/api') && !pathname.startsWith('/internal')) {
+          next();
+          return;
+        }
+
+        void handleApiRequest(req, res, () =>
+          server.ssrLoadModule(localServerEntry)
+        ).catch(next);
+      });
+    },
+  };
+}
+
+async function createWebRequest(req: IncomingMessage): Promise<Request> {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        headers.append(name, item);
+      }
+      continue;
+    }
+
+    headers.set(name, value);
+  }
+
+  const body =
+    req.method === 'GET' || req.method === 'HEAD'
+      ? undefined
+      : await readRequestBody(req);
+
+  return new Request(new URL(req.url ?? '/', getOrigin(req)), {
+    method: req.method ?? 'GET',
+    headers,
+    body,
+  });
+}
+
+async function readRequestBody(req: IncomingMessage): Promise<ArrayBuffer> {
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+
+  const buffer = Buffer.concat(chunks);
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  );
+}
+
+function getOrigin(req: IncomingMessage): string {
+  return `http://${req.headers.host ?? 'localhost:7474'}`;
+}
+
+async function writeWebResponse(
+  res: ServerResponse,
+  response: Response
+): Promise<void> {
+  res.statusCode = response.status;
+  res.statusMessage = response.statusText;
+
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+
+  const body = Buffer.from(await response.arrayBuffer());
+  res.end(body);
+}
 
 export default defineConfig({
-  lint: { options: { typeAware: true, typeCheck: true } },
+  root: clientRoot,
+  publicDir: resolve(rootDir, 'assets'),
+  plugins: [
+    react({
+      // babel: {
+      //   plugins: ['babel-plugin-react-compiler'],
+      // },
+    }),
+    tanstackRouter({
+      routesDirectory: './routes',
+      generatedRouteTree: './routeTree.gen.ts',
+    }),
+    localApiPlugin(),
+  ],
+  server: {
+    port: 7474,
+  },
+  preview: {
+    port: 7474,
+  },
+  build: {
+    outDir: resolve(rootDir, 'dist/client'),
+    emptyOutDir: true,
+    sourcemap: true,
+    minify: true,
+    rolldownOptions: {
+      input: {
+        default: resolve(clientRoot, 'index.html'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name][extname]',
+      },
+    },
+  },
+  lint: {
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
+  fmt: {
+    singleQuote: true,
+    trailingComma: 'es5',
+    quoteProps: 'preserve',
+    semi: true,
+    printWidth: 80,
+    sortPackageJson: false,
+    ignorePatterns: [],
+  },
+  test: {
+    root: rootDir,
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    maxWorkers: 1,
+  },
 });

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "ssr-test2",
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "inline": true,
+        "entry": "index.html"
+      }
+    }
+  },
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true
+    }
+  },
+  "media": {
+    "dir": "assets"
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.js"
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Create a new post",
+        "description": "ssr-test2",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-create"
+      },
+      {
+        "label": "Add to Commenteer",
+        "description": "",
+        "location": "comment",
+        "forUserType": "user",
+        "endpoint": "/internal/menu/add-to-commenteer"
+      },
+      {
+        "label": "Set Commenteer Post",
+        "description": "",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/set-current"
+      }
+    ]
+  },
+  "triggers": {
+    "onAppInstall": "/internal/on-app-install"
+  },
+  "dev": {
+    "subreddit": "ssr_test2_dev"
+  }
+}
