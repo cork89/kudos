@@ -11,8 +11,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import localforage from 'localforage';
 
 import { routeTree } from './routeTree.gen';
-import './styles/test2.css';
-import './styles/view.css';
+import './styles/index.css';
 import './styles/edit.css';
 
 const queryClient = new QueryClient({

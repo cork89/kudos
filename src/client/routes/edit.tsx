@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Preview } from '../components/Preview';
 import { saveSettings } from '../lib/api';
-import { useEditQuery } from '../lib/queries';
+import { patchPreviewSettingsCache, useEditQuery } from '../lib/queries';
 import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
 export const Route = createFileRoute('/edit')({
@@ -16,25 +16,27 @@ const defaultSettings: PostSettings = {
   toolbarCollapsed: false,
 };
 
-function EditPage() {
-  const { data } = useEditQuery();
-  const [settings, setSettings] = useState<PostSettings>(defaultSettings);
-  const [toast, setToast] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+function mergeSettings(saved?: PostSettings): PostSettings {
+  return { ...defaultSettings, ...saved };
+}
 
-  useEffect(() => {
-    if (data?.status === 'ok' && data.data.settings) {
-      setSettings({
-        ...defaultSettings,
-        ...data.data.settings,
-      });
-      setCollapsed(data.data.settings.toolbarCollapsed);
-    }
-  }, [data]);
+function EditPage() {
+  const queryClient = useQueryClient();
+  const { data } = useEditQuery();
+  const [draft, setDraft] = useState<PostSettings | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const settings = useMemo(() => {
+    if (data?.status !== 'ok') return defaultSettings;
+    return draft ?? mergeSettings(data.data.settings);
+  }, [data, draft]);
 
   const mutation = useMutation({
     mutationFn: saveSettings,
-    onSuccess: () => {
+    onSuccess: (_response, savedSettings) => {
+      patchPreviewSettingsCache(queryClient, ['edit'], savedSettings);
+      patchPreviewSettingsCache(queryClient, ['home'], savedSettings);
+      setDraft(null);
       setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
     },
@@ -52,17 +54,26 @@ function EditPage() {
     };
   }, [data, settings]);
 
+  const patchSettings = (patch: Partial<PostSettings>) => {
+    setDraft((prev) => ({
+      ...(prev ??
+        (data?.status === 'ok'
+          ? mergeSettings(data.data.settings)
+          : defaultSettings)),
+      ...patch,
+    }));
+  };
+
   const updateTheme = (theme: Theme) => {
-    setSettings((prev) => ({ ...prev, theme }));
+    patchSettings({ theme });
   };
 
   const updatePosition = (position: CommentPosition) => {
-    setSettings((prev) => ({ ...prev, position }));
+    patchSettings({ position });
   };
 
   const reset = () => {
-    setSettings(defaultSettings);
-    setCollapsed(false);
+    setDraft(defaultSettings);
   };
 
   const save = () => {
@@ -70,42 +81,16 @@ function EditPage() {
   };
 
   const toggleCollapsed = () => {
-    setCollapsed((prev) => !prev);
-    setSettings((prev) => ({
-      ...prev,
-      toolbarCollapsed: !prev.toolbarCollapsed,
-    }));
+    patchSettings({ toolbarCollapsed: !settings.toolbarCollapsed });
   };
 
   return (
     <div className="edit-container">
       <Preview data={previewData} fallbackText="No preview available." />
 
-      <div className="top-bar">
-        <Link className="icon-btn" to="/" title="Back">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-        </Link>
-        <span className="top-bar-title">Edit</span>
-        <button className="icon-btn save" type="button" onClick={save}>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <div className={`toolbar ${collapsed ? 'collapsed' : ''}`}>
+      <div
+        className={`toolbar ${settings.toolbarCollapsed ? 'collapsed' : ''}`}
+      >
         <button
           className="toolbar-toggle"
           type="button"
@@ -194,9 +179,19 @@ function EditPage() {
               ))}
             </div>
           </div>
+        </div>
 
-          <div className="toolbar-divider"></div>
-
+        <div className="toolbar-actions">
+          <Link className="icon-btn" to="/" title="Back">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>
+          </Link>
           <button className="reset-btn" type="button" onClick={reset}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -207,6 +202,16 @@ function EditPage() {
               />
             </svg>
             Reset
+          </button>
+          <button className="icon-btn save" type="button" onClick={save}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </button>
         </div>
       </div>

@@ -128,11 +128,6 @@ async function buildPreviewData(
   };
 }
 
-app.get('/api/view', async (c) => {
-  const response = await buildPreviewData(redditCtx, true);
-  return c.json(response);
-});
-
 app.get('/api/home', async (c) => {
   const response = await buildPreviewData(redditCtx, true);
   return c.json(response);

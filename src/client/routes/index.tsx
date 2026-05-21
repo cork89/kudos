@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Preview } from '../components/Preview';
 import { useHomeQuery } from '../lib/queries';
 
@@ -7,7 +8,8 @@ export const Route = createFileRoute('/')({
 });
 
 function HomePage() {
-  const { data, isLoading, error } = useHomeQuery();
+  const { data } = useHomeQuery();
+  const [viewMode, setViewMode] = useState(false);
 
   const previewData = data?.status === 'ok' ? data.data : undefined;
   const fallback =
@@ -16,95 +18,67 @@ function HomePage() {
       : 'Save a comment to preview it here.';
 
   return (
-    <div className="container">
-      <header>
-        <div className="logo">
-          <h1>Commenteer</h1>
-        </div>
-      </header>
+    <div className={`home-page ${viewMode ? 'view-mode' : ''}`}>
+      <Preview data={previewData} fallbackText={fallback} />
 
-      <main>
-        <div className="canvas-area">
-          <div className="canvas-header">
-            <span className="canvas-title">Canvas Preview</span>
-            <div className="canvas-meta">
-              <span>{isLoading ? 'Loading' : '1 Comment'}</span>
-              <span>{error ? 'Offline' : 'Updated'}</span>
-            </div>
-          </div>
-          <div className="canvas-content">
-            <Preview data={previewData} fallbackText={fallback} />
-
-            <aside className="sidebar">
-              <div className="action-group">
-                <span className="action-group-title">Actions</span>
-                <Link className="btn" to="/edit">
-                  <span className="btn-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </span>
-                  <span className="btn-content">
-                    <span className="btn-label">Edit</span>
-                    <span className="btn-hint">Modify comments & markup</span>
-                  </span>
-                </Link>
-                <div className="divider"></div>
-                <Link className="btn" to="/view">
-                  <span className="btn-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                  </span>
-                  <span className="btn-content">
-                    <span className="btn-label">View</span>
-                    <span className="btn-hint">Preview in full screen</span>
-                  </span>
-                </Link>
-                <div className="divider"></div>
-                <button className="btn" type="button" disabled>
-                  <span className="btn-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  </span>
-                  <span className="btn-content">
-                    <span className="btn-label">Settings</span>
-                    <span className="btn-hint">Preferences & config</span>
-                  </span>
-                </button>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </main>
+      {viewMode ? (
+        <button
+          className="home-show-toggle"
+          type="button"
+          aria-label="Show controls"
+          onClick={() => setViewMode(false)}
+        >
+          <span className="home-show-toggle-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+          </span>
+        </button>
+      ) : (
+        <nav className="home-actions" aria-label="Page actions">
+          <Link className="home-action-btn" to="/edit">
+            <span className="home-action-btn-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </span>
+            Edit
+          </Link>
+          <button
+            className="home-action-btn"
+            type="button"
+            onClick={() => setViewMode(true)}
+          >
+            <span className="home-action-btn-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                />
+              </svg>
+            </span>
+            Hide
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

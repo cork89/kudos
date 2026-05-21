@@ -16,10 +16,6 @@ export function fetchHome(): Promise<ApiPreviewResponse> {
   return fetchJson<ApiPreviewResponse>('/api/home');
 }
 
-export function fetchView(): Promise<ApiPreviewResponse> {
-  return fetchJson<ApiPreviewResponse>('/api/view');
-}
-
 export function fetchEdit(): Promise<ApiPreviewResponse> {
   return fetchJson<ApiPreviewResponse>('/api/edit');
 }
