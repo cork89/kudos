@@ -15,8 +15,8 @@ export function patchSettingsCache(
 
 export function usePreviewQuery() {
   return useQuery({
-    queryKey: ['preview'],
-    queryFn: fetchPreview,
+    queryKey: ['preview', 'list'],
+    queryFn: () => fetchPreview(),
   });
 }
 

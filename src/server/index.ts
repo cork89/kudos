@@ -11,7 +11,7 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { createPost } from './core/post';
 import {
   canEditSave,
-  getLatestSave,
+  getRecentSaves,
   getSaveByCommentId,
   getSaveForEdit,
   isSaveStored,
@@ -53,10 +53,61 @@ async function toPreviewComment(
   };
 }
 
-async function buildPreviewData(
-  ctx: RedditContext
+async function buildPreviewItem(
+  ctx: RedditContext,
+  save: { commentId: string; ownerId: string }
+): Promise<PreviewData | null> {
+  try {
+    const comment = await ctx.reddit.getCommentById(
+      save.commentId as `t1_${string}`
+    );
+    const postId = comment.postId;
+    const parentCommentId =
+      comment.parentId?.startsWith('t1_') === true
+        ? (comment.parentId as `t1_${string}`)
+        : undefined;
+
+    const [post, childPreview, parentPreview] = await Promise.all([
+      ctx.reddit.getPostById(postId as `t3_${string}`),
+      toPreviewComment(ctx, save.commentId, comment),
+      parentCommentId
+        ? ctx.reddit
+            .getCommentById(parentCommentId)
+            .then((parentComment) =>
+              toPreviewComment(ctx, parentCommentId, parentComment)
+            )
+            .catch((error) => {
+              console.error('Failed to fetch parent comment:', error);
+              return undefined;
+            })
+        : Promise.resolve(undefined),
+    ]);
+
+    const thumbnail = await post.getEnrichedThumbnail();
+
+    return {
+      postId,
+      commentId: save.commentId,
+      comment: childPreview,
+      parentComment: parentPreview,
+      post: {
+        id: postId,
+        title: post.title,
+        imageUrl: thumbnail?.image?.url ?? undefined,
+      },
+      canEdit: canEditSave(ctx, save.ownerId),
+    };
+  } catch (error) {
+    console.error('Failed to build preview item:', error);
+    return null;
+  }
+}
+
+async function buildPreviewList(
+  ctx: RedditContext,
+  options: { limit?: number; before?: number } = {}
 ): Promise<ApiPreviewResponse> {
-  const recent = await getLatestSave(ctx);
+  const recent = await getRecentSaves(ctx, options);
   if (recent.status !== 'ok') {
     return {
       status: 'empty',
@@ -64,49 +115,28 @@ async function buildPreviewData(
     };
   }
 
-  const comment = await ctx.reddit.getCommentById(
-    recent.commentId as `t1_${string}`
+  const previewResults = await Promise.all(
+    recent.saves.map((save) => buildPreviewItem(ctx, save))
   );
-  const postId = comment.postId;
-  const parentCommentId =
-    comment.parentId?.startsWith('t1_') === true
-      ? (comment.parentId as `t1_${string}`)
-      : undefined;
+  const items = previewResults.filter(
+    (item): item is PreviewData => item !== null
+  );
 
-  const [post, childPreview, parentPreview] = await Promise.all([
-    ctx.reddit.getPostById(postId as `t3_${string}`),
-    toPreviewComment(ctx, recent.commentId, comment),
-    parentCommentId
-      ? ctx.reddit
-          .getCommentById(parentCommentId)
-          .then((parentComment) =>
-            toPreviewComment(ctx, parentCommentId, parentComment)
-          )
-          .catch((error) => {
-            console.error('Failed to fetch parent comment:', error);
-            return undefined;
-          })
-      : Promise.resolve(undefined),
-  ]);
+  if (items.length === 0) {
+    return {
+      status: 'empty',
+      message: 'No saved posts yet.',
+    };
+  }
 
-  const thumbnail = await post.getEnrichedThumbnail();
-
-  const payload: PreviewData = {
-    postId,
-    commentId: recent.commentId,
-    comment: childPreview,
-    parentComment: parentPreview,
-    post: {
-      id: postId,
-      title: post.title,
-      imageUrl: thumbnail?.image?.url ?? undefined,
-    },
-    canEdit: canEditSave(ctx, recent.ownerId),
-  };
+  const oldestSave = recent.saves[recent.saves.length - 1];
 
   return {
     status: 'ok',
-    data: payload,
+    data: {
+      items,
+      cursor: oldestSave?.score ?? null,
+    },
   };
 }
 
@@ -140,7 +170,22 @@ async function buildSettingsResponse(
 }
 
 app.get('/api/preview', async (c) => {
-  const response = await buildPreviewData(redditCtx);
+  const beforeParam = c.req.query('before');
+  const before =
+    beforeParam !== undefined ? Number.parseInt(beforeParam, 10) : undefined;
+  const limitParam = c.req.query('limit');
+  const limit =
+    limitParam !== undefined ? Number.parseInt(limitParam, 10) : undefined;
+
+  const options: { limit?: number; before?: number } = {};
+  if (limit !== undefined && Number.isFinite(limit)) {
+    options.limit = limit;
+  }
+  if (before !== undefined && Number.isFinite(before)) {
+    options.before = before;
+  }
+
+  const response = await buildPreviewList(redditCtx, options);
   return c.json(response);
 });
 

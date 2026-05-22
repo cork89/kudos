@@ -8,6 +8,7 @@ import {
   usePreviewQuery,
   useSettingsQuery,
 } from '../lib/queries';
+import { getFirstPreview } from '../lib/preview';
 import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
 export const Route = createFileRoute('/edit')({
@@ -28,8 +29,7 @@ function EditPage() {
   const queryClient = useQueryClient();
   const { data: previewResponse, isLoading: isPreviewLoading } =
     usePreviewQuery();
-  const preview =
-    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  const preview = getFirstPreview(previewResponse);
   const { data: settingsResponse } = useSettingsQuery(preview?.commentId);
   const [draft, setDraft] = useState<PostSettings | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -66,7 +66,7 @@ function EditPage() {
   if (
     !isPreviewLoading &&
     previewResponse?.status === 'ok' &&
-    !previewResponse.data.canEdit
+    !getFirstPreview(previewResponse)?.canEdit
   ) {
     return <Navigate replace to="/" />;
   }

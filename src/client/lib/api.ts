@@ -13,8 +13,22 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function fetchPreview(): Promise<ApiPreviewResponse> {
-  return fetchJson<ApiPreviewResponse>('/api/preview');
+export function fetchPreview(options?: {
+  before?: number;
+  limit?: number;
+}): Promise<ApiPreviewResponse> {
+  const params = new URLSearchParams();
+  if (options?.before !== undefined) {
+    params.set('before', String(options.before));
+  }
+  if (options?.limit !== undefined) {
+    params.set('limit', String(options.limit));
+  }
+
+  const query = params.toString();
+  return fetchJson<ApiPreviewResponse>(
+    query ? `/api/preview?${query}` : '/api/preview'
+  );
 }
 
 export function fetchSettings(commentId: string): Promise<ApiSettingsResponse> {

@@ -55,7 +55,48 @@ export function canEditSave(ctx: RedditContext, ownerId: string): boolean {
   return Boolean(ctx.context.userId && ctx.context.userId === ownerId);
 }
 
-export async function getLatestSave(ctx: RedditContext): Promise<SaveResult> {
+export type RecentSaveEntry = {
+  ownerId: string;
+  member: string;
+  commentId: string;
+  score: number;
+};
+
+type SortedSetEntry = { member: string; score: number };
+
+async function parseSaveEntries(
+  ctx: RedditContext,
+  postId: string,
+  rawEntries: SortedSetEntry[]
+): Promise<RecentSaveEntry[]> {
+  const saves: RecentSaveEntry[] = [];
+
+  for (const entry of rawEntries) {
+    const parsed = parseSaveMember(entry.member);
+    if (!parsed) {
+      await ctx.redis.zRem(postId, [entry.member]);
+      continue;
+    }
+
+    saves.push({
+      ownerId: parsed.userId,
+      member: entry.member,
+      commentId: parsed.commentId,
+      score: entry.score,
+    });
+  }
+
+  return saves;
+}
+
+export async function getRecentSaves(
+  ctx: RedditContext,
+  options: { limit?: number; before?: number } = {}
+): Promise<
+  | { status: 'ok'; postId: string; saves: RecentSaveEntry[] }
+  | { status: 'empty'; message: string }
+> {
+  const limit = options.limit ?? 10;
   const postId = await resolvePostId(ctx);
   if (!postId) {
     return { status: 'empty', message: 'No active post.' };
@@ -66,26 +107,50 @@ export async function getLatestSave(ctx: RedditContext): Promise<SaveResult> {
     return { status: 'empty', message: 'No saved posts yet.' };
   }
 
-  const recent = await ctx.redis.zRange(postId, card - 1, card - 1, {
-    by: 'rank',
-  });
-  const entry = recent[0];
-  if (!entry) {
+  let rawEntries: SortedSetEntry[];
+  if (options.before !== undefined) {
+    if (!Number.isFinite(options.before)) {
+      return { status: 'empty', message: 'Invalid cursor.' };
+    }
+
+    const older = await ctx.redis.zRange(postId, 0, options.before - 1, {
+      by: 'score',
+    });
+    rawEntries = older.slice(Math.max(0, older.length - limit));
+  } else {
+    const start = Math.max(0, card - limit);
+    rawEntries = await ctx.redis.zRange(postId, start, card - 1, {
+      by: 'rank',
+    });
+  }
+
+  const saves = await parseSaveEntries(ctx, postId, rawEntries);
+  if (saves.length === 0) {
     return { status: 'empty', message: 'No saved posts yet.' };
   }
 
-  const parsed = parseSaveMember(entry.member);
-  if (!parsed) {
-    await ctx.redis.zRem(postId, [entry.member]);
-    return { status: 'empty', message: 'Invalid post data.' };
+  saves.reverse();
+
+  return { status: 'ok', postId, saves };
+}
+
+export async function getLatestSave(ctx: RedditContext): Promise<SaveResult> {
+  const recent = await getRecentSaves(ctx, { limit: 1 });
+  if (recent.status !== 'ok') {
+    return recent;
+  }
+
+  const save = recent.saves[0];
+  if (!save) {
+    return { status: 'empty', message: 'No saved posts yet.' };
   }
 
   return {
     status: 'ok',
-    ownerId: parsed.userId,
-    member: entry.member,
-    commentId: parsed.commentId,
-    postId,
+    ownerId: save.ownerId,
+    member: save.member,
+    commentId: save.commentId,
+    postId: recent.postId,
   };
 }
 

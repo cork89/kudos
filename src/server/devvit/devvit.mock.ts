@@ -15,19 +15,46 @@ const context: Context = {
 type DbValue = Record<string, string> | string | Post | Comment | User;
 type SortedSetEntry = { member: string; score: number };
 
+const PREVIEW_COUNT = 12;
+
+function commentIdForIndex(index: number): `t1_${string}` {
+  return `t1_comment${String(index).padStart(2, '0')}` as `t1_${string}`;
+}
+
+function postIdForIndex(index: number): `t3_${string}` {
+  return `t3_post${String(index).padStart(2, '0')}` as `t3_${string}`;
+}
+
+function picsumUrl(seed: number): string {
+  return `https://picsum.photos/seed/kudos-${seed}/1200/800`;
+}
+
+const mockSaveMembers = Array.from({ length: PREVIEW_COUNT }, (_, index) => {
+  const saveIndex = index + 1;
+  return {
+    member: `${commentIdForIndex(saveIndex)}-t2_test`,
+    score: saveIndex,
+  };
+});
+
 const db: Record<string, DbValue> = {
   meta: {
     current: 't3_commenteer',
   },
-  't3_commenteer:seq': '1',
-  't1_commentId-t2_test': {
-    data: '{}',
-    owner: 't2_test',
-  },
+  't3_commenteer:seq': String(PREVIEW_COUNT),
+  ...Object.fromEntries(
+    mockSaveMembers.map(({ member }) => [
+      member,
+      {
+        data: '{}',
+        owner: 't2_test',
+      },
+    ])
+  ),
 };
 
 const sortedSets: Record<string, SortedSetEntry[]> = {
-  t3_commenteer: [{ member: 't1_commentId-t2_test', score: 1 }],
+  t3_commenteer: mockSaveMembers,
 };
 
 function getSortedSet(key: string): SortedSetEntry[] {
@@ -46,6 +73,16 @@ function sortByRank(entries: SortedSetEntry[]): SortedSetEntry[] {
   });
 }
 
+function parseCommentIndex(commentId: string): number {
+  const match = commentId.match(/^t1_comment(\d+)$/);
+  return match?.[1] ? Number.parseInt(match[1], 10) : 1;
+}
+
+function parsePostIndex(postId: string): number {
+  const match = postId.match(/^t3_post(\d+)$/);
+  return match?.[1] ? Number.parseInt(match[1], 10) : 1;
+}
+
 const reddit = {
   submitCustomPost: async ({ title }: { title: string }) => ({
     id: 'abc123',
@@ -55,35 +92,44 @@ const reddit = {
     if (commentId === 't1_parent123') {
       return {
         id: commentId,
-        postId: 't3_abc123',
-        parentId: 't3_abc123',
+        postId: postIdForIndex(1),
+        parentId: postIdForIndex(1),
         body: 'Anyone else think cassowaries are underrated?',
         authorId: 't2_parent',
         authorName: 'parent_user',
       } as unknown as Comment;
     }
 
+    const index = parseCommentIndex(commentId);
+
     return {
       id: commentId,
-      postId: 't3_abc123',
-      parentId: 't1_parent123',
-      body: 'cassowary has entered the chat',
+      postId: postIdForIndex(index),
+      parentId: index % 2 === 0 ? 't1_parent123' : postIdForIndex(index),
+      body: `Save #${index}: cassowary has entered the chat`,
       authorId: 't2_author',
-      authorName: 'test',
+      authorName: `test_user_${index}`,
     } as unknown as Comment;
   },
-  getPostById: async (postId: `t3_${string}`): Promise<Post> =>
-    ({
+  getPostById: async (postId: `t3_${string}`): Promise<Post> => {
+    const index = parsePostIndex(postId);
+
+    return {
       id: postId,
-      title: 'Test post',
+      title: `Test post ${index}`,
       getEnrichedThumbnail: async (): Promise<EnrichedThumbnail | undefined> =>
-        ({ image: { url: 'bird.webp' } }) as EnrichedThumbnail,
-    }) as Post,
+        ({
+          image: { url: picsumUrl(100 + index) },
+        }) as EnrichedThumbnail,
+    } as Post;
+  },
   getUserById: async (authorId: `t2_${string}`): Promise<User | undefined> =>
     ({
       id: authorId,
-      getSnoovatarUrl: async () =>
-        authorId === 't2_parent' ? 'avatar_parent.webp' : 'avatar_default.webp',
+      getSnoovatarUrl: async () => {
+        const suffix = Number.parseInt(authorId.replace(/\D/g, ''), 10) || 0;
+        return picsumUrl(9100 + (suffix % 100));
+      },
     }) as User,
 };
 

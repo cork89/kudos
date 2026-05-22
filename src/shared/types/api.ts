@@ -48,10 +48,15 @@ export type PreviewData = {
   canEdit: boolean;
 };
 
+export type PreviewListData = {
+  items: PreviewData[];
+  cursor: number | null;
+};
+
 export type ApiPreviewResponse =
   | {
       status: 'ok';
-      data: PreviewData;
+      data: PreviewListData;
     }
   | {
       status: 'empty';
