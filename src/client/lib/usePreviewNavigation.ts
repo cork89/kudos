@@ -1,18 +1,35 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { ApiPreviewResponse, PreviewData } from '../../shared/types/api';
 import type { SlideDirection } from './preview';
 import { fetchPreview } from './api';
 import { getPreviewCursor, getPreviewList } from './preview';
+import {
+  consumePreviewNavigationRestore,
+  savePreviewNavigationSnapshot,
+} from './previewNavigationState';
+
+type NavigationSnapshot = {
+  items: PreviewData[];
+  selectedIndex: number;
+  cursor: number | null;
+  hasMoreOlder: boolean | null;
+};
 
 function getSnapshotFromResponse(
   previewResponse: ApiPreviewResponse | undefined
-) {
+): NavigationSnapshot {
   if (previewResponse?.status !== 'ok') {
     return {
-      items: [] as PreviewData[],
+      items: [],
       selectedIndex: 0,
-      cursor: null as number | null,
-      hasMoreOlder: null as boolean | null,
+      cursor: null,
+      hasMoreOlder: null,
     };
   }
 
@@ -25,10 +42,35 @@ function getSnapshotFromResponse(
   };
 }
 
+function getInitialSnapshot(
+  previewResponse: ApiPreviewResponse | undefined
+): NavigationSnapshot {
+  const restored = consumePreviewNavigationRestore();
+  if (restored) {
+    const selectedIndex = restored.items.findIndex(
+      (item) => item.commentId === restored.selectedCommentId
+    );
+    if (selectedIndex >= 0) {
+      return {
+        items: restored.items,
+        selectedIndex,
+        cursor: restored.cursor,
+        hasMoreOlder: restored.hasMoreOlder,
+      };
+    }
+  }
+
+  return getSnapshotFromResponse(previewResponse);
+}
+
 export function usePreviewNavigation(
   previewResponse: ApiPreviewResponse | undefined
 ) {
-  const initialSnapshot = getSnapshotFromResponse(previewResponse);
+  const initialSnapshotRef = useRef<NavigationSnapshot | null>(null);
+  if (initialSnapshotRef.current === null) {
+    initialSnapshotRef.current = getInitialSnapshot(previewResponse);
+  }
+  const initialSnapshot = initialSnapshotRef.current;
   const [items, setItems] = useState(initialSnapshot.items);
   const [selectedIndex, setSelectedIndex] = useState(
     initialSnapshot.selectedIndex
@@ -44,6 +86,36 @@ export function usePreviewNavigation(
   const [prevPreviewResponse, setPrevPreviewResponse] =
     useState(previewResponse);
   const prefetchKeyRef = useRef<string | null>(null);
+  const navigationRef = useRef({
+    items: initialSnapshot.items,
+    selectedIndex: initialSnapshot.selectedIndex,
+    cursor: initialSnapshot.cursor,
+    hasMoreOlder: initialSnapshot.hasMoreOlder,
+  });
+
+  navigationRef.current = { items, selectedIndex, cursor, hasMoreOlder };
+
+  useEffect(() => {
+    return () => {
+      const {
+        items: currentItems,
+        selectedIndex: currentIndex,
+        cursor: currentCursor,
+        hasMoreOlder: currentHasMoreOlder,
+      } = navigationRef.current;
+      const selectedCommentId = currentItems[currentIndex]?.commentId;
+      if (!selectedCommentId) {
+        return;
+      }
+
+      savePreviewNavigationSnapshot({
+        items: currentItems,
+        selectedCommentId,
+        cursor: currentCursor,
+        hasMoreOlder: currentHasMoreOlder,
+      });
+    };
+  }, []);
 
   if (previewResponse !== prevPreviewResponse) {
     setPrevPreviewResponse(previewResponse);

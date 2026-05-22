@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Preview } from '../components/Preview';
 import { usePreviewQuery, useSettingsQuery } from '../lib/queries';
+import { useBlockWheelScroll } from '../lib/useBlockWheelScroll';
 import { usePreviewNavigation } from '../lib/usePreviewNavigation';
 import type { PostSettings } from '../../shared/types/api';
 
@@ -15,11 +16,9 @@ const defaultSettings: PostSettings = {
   toolbarCollapsed: false,
 };
 
-const WHEEL_THRESHOLD = 48;
-
 function HomePage() {
   const homeRef = useRef<HTMLDivElement>(null);
-  const wheelDeltaRef = useRef(0);
+  useBlockWheelScroll(homeRef);
   const { data: previewResponse } = usePreviewQuery();
   const {
     preview,
@@ -45,37 +44,6 @@ function HomePage() {
     previewResponse?.status === 'empty'
       ? previewResponse.message
       : 'Save a comment to preview it here.';
-
-  useEffect(() => {
-    const home = homeRef.current;
-    if (!home) {
-      return;
-    }
-
-    const handleWheel = (event: WheelEvent) => {
-      if (!showNavigation) {
-        return;
-      }
-
-      wheelDeltaRef.current += event.deltaY;
-      if (Math.abs(wheelDeltaRef.current) < WHEEL_THRESHOLD) {
-        return;
-      }
-
-      if (wheelDeltaRef.current > 0) {
-        if (canGoDown) {
-          void goDown();
-        }
-      } else if (canGoUp) {
-        goUp();
-      }
-
-      wheelDeltaRef.current = 0;
-    };
-
-    home.addEventListener('wheel', handleWheel, { passive: true });
-    return () => home.removeEventListener('wheel', handleWheel);
-  }, [canGoDown, canGoUp, goDown, goUp, showNavigation]);
 
   return (
     <div ref={homeRef} className={`home-page ${viewMode ? 'view-mode' : ''}`}>

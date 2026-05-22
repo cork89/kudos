@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Preview } from '../components/Preview';
 import { saveSettings } from '../lib/api';
@@ -8,6 +8,8 @@ import {
   usePreviewItemQuery,
   useSettingsQuery,
 } from '../lib/queries';
+import { requestPreviewNavigationRestore } from '../lib/previewNavigationState';
+import { useBlockWheelScroll } from '../lib/useBlockWheelScroll';
 import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
 export const Route = createFileRoute('/edit/$commentId')({
@@ -25,6 +27,11 @@ function mergeSettings(saved?: PostSettings): PostSettings {
 }
 
 export function EditPage() {
+  const editRef = useRef<HTMLDivElement>(null);
+  useBlockWheelScroll(editRef);
+  useEffect(() => {
+    requestPreviewNavigationRestore();
+  }, []);
   const { commentId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: previewResponse, isLoading: isPreviewLoading } =
@@ -109,7 +116,7 @@ export function EditPage() {
   };
 
   return (
-    <div className="edit-container">
+    <div ref={editRef} className="edit-container">
       <Preview
         preview={preview}
         settings={settings}
