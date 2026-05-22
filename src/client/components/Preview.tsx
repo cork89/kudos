@@ -1,6 +1,6 @@
 import {
-  useCallback,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type AnimationEvent,
@@ -29,6 +29,11 @@ type SlideLayers = {
   outgoingSettings?: PostSettings | undefined;
 };
 
+type SlideAnimState = {
+  layers: SlideLayers | null;
+  isBlurFading: boolean;
+};
+
 const defaultSettings: PostSettings = {
   position: 'center',
   theme: 'dark',
@@ -36,6 +41,7 @@ const defaultSettings: PostSettings = {
 };
 
 const BLUR_FADE_MS = 800;
+const initialAnimState: SlideAnimState = { layers: null, isBlurFading: false };
 
 function getInitials(name?: string) {
   if (!name) return '??';
@@ -121,52 +127,54 @@ export function Preview({
   slideDirection = null,
   onSlideMotionComplete,
 }: PreviewProps) {
-  const [layers, setLayers] = useState<SlideLayers | null>(null);
-  const [isBlurFading, setIsBlurFading] = useState(false);
+  const [animState, setAnimState] = useState<SlideAnimState>(initialAnimState);
   const previewRef = useRef<PreviewData | undefined>(preview);
   const settingsRef = useRef<PostSettings | undefined>(
     settings ?? defaultSettings
   );
+  const prevPreviewRef = useRef(preview);
+  const prevSlideDirectionRef = useRef(slideDirection);
 
-  useEffect(() => {
-    settingsRef.current = settings ?? defaultSettings;
-  }, [settings]);
+  settingsRef.current = settings ?? defaultSettings;
 
-  useEffect(() => {
+  if (
+    preview !== prevPreviewRef.current ||
+    slideDirection !== prevSlideDirectionRef.current
+  ) {
+    prevPreviewRef.current = preview;
+    prevSlideDirectionRef.current = slideDirection;
+
     if (!preview) {
       previewRef.current = undefined;
-      setLayers(null);
-      return;
-    }
-
-    const previous = previewRef.current;
-    if (
-      !previous ||
-      previous.commentId === preview.commentId ||
-      !slideDirection
-    ) {
+      setAnimState(initialAnimState);
+    } else {
+      const previous = previewRef.current;
+      if (
+        previous &&
+        previous.commentId !== preview.commentId &&
+        slideDirection
+      ) {
+        setAnimState({
+          isBlurFading: false,
+          layers: {
+            outgoing: previous,
+            incoming: preview,
+            direction: slideDirection,
+            outgoingSettings: settingsRef.current ?? defaultSettings,
+          },
+        });
+      }
       previewRef.current = preview;
-      return;
     }
+  }
 
-    setIsBlurFading(false);
-    setLayers({
-      outgoing: previous,
-      incoming: preview,
-      direction: slideDirection,
-      outgoingSettings: settingsRef.current ?? defaultSettings,
-    });
-    previewRef.current = preview;
-  }, [preview, slideDirection]);
-
-  const finishSlide = useCallback(() => {
-    setIsBlurFading(false);
-    setLayers(null);
+  const finishSlide = useEffectEvent(() => {
+    setAnimState(initialAnimState);
     settingsRef.current = settings ?? defaultSettings;
-  }, [settings]);
+  });
 
   useEffect(() => {
-    if (!isBlurFading) {
+    if (!animState.isBlurFading) {
       return;
     }
 
@@ -175,10 +183,10 @@ export function Preview({
     }, BLUR_FADE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [finishSlide, isBlurFading]);
+  }, [animState.isBlurFading]);
 
   useEffect(() => {
-    if (!layers) {
+    if (!animState.layers) {
       return;
     }
 
@@ -192,14 +200,14 @@ export function Preview({
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [finishSlide, layers]);
+  }, [animState.layers]);
 
   const handleSlideEnd = (event: AnimationEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget || isBlurFading) {
+    if (event.target !== event.currentTarget || animState.isBlurFading) {
       return;
     }
 
-    setIsBlurFading(true);
+    setAnimState((current) => ({ ...current, isBlurFading: true }));
     onSlideMotionComplete?.();
   };
 
@@ -221,27 +229,27 @@ export function Preview({
     );
   }
 
-  if (layers) {
+  if (animState.layers) {
     return (
       <div className="image-container" id="image-container">
         <div
-          className={`preview-slide-stage ${isBlurFading ? 'is-blur-fading' : ''}`.trim()}
-          data-direction={layers.direction}
+          className={`preview-slide-stage ${animState.isBlurFading ? 'is-blur-fading' : ''}`.trim()}
+          data-direction={animState.layers.direction}
         >
-          {!isBlurFading ? (
+          {!animState.isBlurFading ? (
             <PreviewFrame
-              preview={layers.outgoing}
-              settings={layers.outgoingSettings}
-              className={`preview-slide-exit preview-slide-exit-${layers.direction}`}
+              preview={animState.layers.outgoing}
+              settings={animState.layers.outgoingSettings}
+              className={`preview-slide-exit preview-slide-exit-${animState.layers.direction}`}
             />
           ) : null}
           <PreviewFrame
-            preview={layers.incoming}
+            preview={animState.layers.incoming}
             settings={settings}
             className={
-              isBlurFading
-                ? `preview-slide-settled preview-slide-enter-${layers.direction}`
-                : `preview-slide-enter preview-slide-enter-${layers.direction}`
+              animState.isBlurFading
+                ? `preview-slide-settled preview-slide-enter-${animState.layers.direction}`
+                : `preview-slide-enter preview-slide-enter-${animState.layers.direction}`
             }
             onAnimationEnd={handleSlideEnd}
           />

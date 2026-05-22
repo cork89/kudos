@@ -469,13 +469,13 @@ app.post('/internal/menu/add-to-commenteer', async (c) => {
       });
     }
 
-    await reddit.getCommentById(targetId);
-
     if (await isSaveStored(redditCtx, userId, targetId)) {
       return c.json({
         showToast: 'Comment already saved.',
       });
     }
+
+    // await reddit.getCommentById(targetId);
 
     const member = await storeSave(redditCtx, userId, targetId);
     if (!member) {

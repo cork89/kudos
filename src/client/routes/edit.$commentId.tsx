@@ -24,7 +24,7 @@ function mergeSettings(saved?: PostSettings): PostSettings {
   return { ...defaultSettings, ...saved };
 }
 
-function EditPage() {
+export function EditPage() {
   const { commentId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: previewResponse, isLoading: isPreviewLoading } =
@@ -57,6 +57,9 @@ function EditPage() {
       { commentId: saveCommentId, settings: nextSettings }
     ) => {
       patchSettingsCache(queryClient, saveCommentId, nextSettings);
+      void queryClient.invalidateQueries({
+        queryKey: ['settings', saveCommentId],
+      });
       setDraft(null);
       setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
@@ -120,6 +123,7 @@ function EditPage() {
           className="toolbar-toggle"
           type="button"
           title="Toggle toolbar"
+          aria-label="Toggle toolbar"
           onClick={toggleCollapsed}
         >
           <svg
@@ -146,6 +150,7 @@ function EditPage() {
                 data-theme="dark"
                 type="button"
                 title="Dark mode"
+                aria-label="Dark mode"
                 onClick={() => updateTheme('dark')}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,6 +167,7 @@ function EditPage() {
                 data-theme="light"
                 type="button"
                 title="Light mode"
+                aria-label="Light mode"
                 onClick={() => updateTheme('light')}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,6 +205,7 @@ function EditPage() {
                   className={`pos-btn ${settings.position === pos ? 'active' : ''}`}
                   data-position={pos}
                   type="button"
+                  aria-label={`Position ${pos}`}
                   onClick={() => updatePosition(pos)}
                 />
               ))}
@@ -228,7 +235,12 @@ function EditPage() {
             </svg>
             Reset
           </button>
-          <button className="icon-btn save" type="button" onClick={save}>
+          <button
+            className="icon-btn save"
+            type="button"
+            aria-label="Save settings"
+            onClick={save}
+          >
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"

@@ -1,39 +1,61 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ApiPreviewResponse, PreviewData } from '../../shared/types/api';
 import type { SlideDirection } from './preview';
 import { fetchPreview } from './api';
 import { getPreviewCursor, getPreviewList } from './preview';
 
+function getSnapshotFromResponse(
+  previewResponse: ApiPreviewResponse | undefined
+) {
+  if (previewResponse?.status !== 'ok') {
+    return {
+      items: [] as PreviewData[],
+      selectedIndex: 0,
+      cursor: null as number | null,
+      hasMoreOlder: null as boolean | null,
+    };
+  }
+
+  const initialCursor = getPreviewCursor(previewResponse);
+  return {
+    items: getPreviewList(previewResponse),
+    selectedIndex: 0,
+    cursor: initialCursor,
+    hasMoreOlder: initialCursor !== null ? null : false,
+  };
+}
+
 export function usePreviewNavigation(
   previewResponse: ApiPreviewResponse | undefined
 ) {
-  const [items, setItems] = useState<PreviewData[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [cursor, setCursor] = useState<number | null>(null);
-  const [hasMoreOlder, setHasMoreOlder] = useState<boolean | null>(null);
+  const initialSnapshot = getSnapshotFromResponse(previewResponse);
+  const [items, setItems] = useState(initialSnapshot.items);
+  const [selectedIndex, setSelectedIndex] = useState(
+    initialSnapshot.selectedIndex
+  );
+  const [cursor, setCursor] = useState<number | null>(initialSnapshot.cursor);
+  const [hasMoreOlder, setHasMoreOlder] = useState<boolean | null>(
+    initialSnapshot.hasMoreOlder
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [slideDirection, setSlideDirection] = useState<SlideDirection | null>(
     null
   );
+  const [prevPreviewResponse, setPrevPreviewResponse] =
+    useState(previewResponse);
   const prefetchKeyRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (previewResponse?.status !== 'ok') {
-      setItems([]);
-      setSelectedIndex(0);
-      setCursor(null);
-      setHasMoreOlder(null);
-      prefetchKeyRef.current = null;
-      return;
-    }
-
-    const initialCursor = getPreviewCursor(previewResponse);
-    setItems(getPreviewList(previewResponse));
-    setSelectedIndex(0);
-    setCursor(initialCursor);
-    setHasMoreOlder(initialCursor !== null ? null : false);
+  if (previewResponse !== prevPreviewResponse) {
+    setPrevPreviewResponse(previewResponse);
+    const snapshot = getSnapshotFromResponse(previewResponse);
+    setItems(snapshot.items);
+    setSelectedIndex(snapshot.selectedIndex);
+    setCursor(snapshot.cursor);
+    setHasMoreOlder(snapshot.hasMoreOlder);
     prefetchKeyRef.current = null;
-  }, [previewResponse]);
+  }
+
+  const effectiveHasMoreOlder = cursor === null ? false : hasMoreOlder;
 
   const fetchOlder = useCallback(async () => {
     if (cursor === null || isLoadingMore) {
@@ -67,19 +89,12 @@ export function usePreviewNavigation(
     }
   }, [cursor, isLoadingMore]);
 
-  useEffect(() => {
+  const schedulePrefetch = useCallback(() => {
+    if (cursor === null || effectiveHasMoreOlder === false || isLoadingMore) {
+      return;
+    }
+
     if (items.length === 0 || selectedIndex !== items.length - 1) {
-      return;
-    }
-
-    if (cursor === null) {
-      if (hasMoreOlder !== false) {
-        setHasMoreOlder(false);
-      }
-      return;
-    }
-
-    if (hasMoreOlder === false || isLoadingMore) {
       return;
     }
 
@@ -92,12 +107,16 @@ export function usePreviewNavigation(
     void fetchOlder();
   }, [
     cursor,
+    effectiveHasMoreOlder,
     fetchOlder,
-    hasMoreOlder,
     isLoadingMore,
     items.length,
     selectedIndex,
   ]);
+
+  useLayoutEffect(() => {
+    schedulePrefetch();
+  }, [schedulePrefetch]);
 
   const clearSlide = useCallback(() => {
     setSlideDirection(null);
@@ -115,11 +134,17 @@ export function usePreviewNavigation(
   const goDown = useCallback(async () => {
     if (selectedIndex < items.length - 1) {
       setSlideDirection('down');
-      setSelectedIndex((current) => current + 1);
+      setSelectedIndex((current) => {
+        const nextIndex = current + 1;
+        if (nextIndex === items.length - 1) {
+          queueMicrotask(() => schedulePrefetch());
+        }
+        return nextIndex;
+      });
       return;
     }
 
-    if (hasMoreOlder !== true || isLoadingMore) {
+    if (effectiveHasMoreOlder !== true || isLoadingMore) {
       return;
     }
 
@@ -134,10 +159,11 @@ export function usePreviewNavigation(
     clearSlide();
   }, [
     clearSlide,
+    effectiveHasMoreOlder,
     fetchOlder,
-    hasMoreOlder,
     isLoadingMore,
     items.length,
+    schedulePrefetch,
     selectedIndex,
   ]);
 
@@ -145,9 +171,9 @@ export function usePreviewNavigation(
   const canGoUp = selectedIndex > 0;
   const canGoDown =
     selectedIndex < items.length - 1 ||
-    (hasMoreOlder === true && !isLoadingMore);
+    (effectiveHasMoreOlder === true && !isLoadingMore);
   const showNavigation =
-    canGoUp || canGoDown || hasMoreOlder === null || isLoadingMore;
+    canGoUp || canGoDown || effectiveHasMoreOlder === null || isLoadingMore;
 
   return {
     preview,

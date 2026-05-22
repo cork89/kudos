@@ -70,11 +70,12 @@ async function parseSaveEntries(
   rawEntries: SortedSetEntry[]
 ): Promise<RecentSaveEntry[]> {
   const saves: RecentSaveEntry[] = [];
+  const invalidMembers: string[] = [];
 
   for (const entry of rawEntries) {
     const parsed = parseSaveMember(entry.member);
     if (!parsed) {
-      await ctx.redis.zRem(postId, [entry.member]);
+      invalidMembers.push(entry.member);
       continue;
     }
 
@@ -84,6 +85,10 @@ async function parseSaveEntries(
       commentId: parsed.commentId,
       score: entry.score,
     });
+  }
+
+  if (invalidMembers.length > 0) {
+    await ctx.redis.zRem(postId, invalidMembers);
   }
 
   return saves;
@@ -179,23 +184,29 @@ export async function getSaveByCommentId(
     return { status: 'empty', message: 'Save not found.' };
   }
 
-  for (let rank = card - 1; rank >= 0; rank -= 1) {
-    const recent = await ctx.redis.zRange(postId, rank, rank, {
-      by: 'rank',
-    });
-    const entry = recent[0];
+  const entries = await ctx.redis.zRange(postId, 0, card - 1, {
+    by: 'rank',
+  });
+  const invalidMembers: string[] = [];
+
+  for (let rank = entries.length - 1; rank >= 0; rank -= 1) {
+    const entry = entries[rank];
     if (!entry) {
       continue;
     }
 
     const parsed = parseSaveMember(entry.member);
     if (!parsed) {
-      await ctx.redis.zRem(postId, [entry.member]);
+      invalidMembers.push(entry.member);
       continue;
     }
 
     if (parsed.commentId !== commentId) {
       continue;
+    }
+
+    if (invalidMembers.length > 0) {
+      void ctx.redis.zRem(postId, invalidMembers);
     }
 
     return {
@@ -205,6 +216,10 @@ export async function getSaveByCommentId(
       commentId: parsed.commentId,
       postId,
     };
+  }
+
+  if (invalidMembers.length > 0) {
+    void ctx.redis.zRem(postId, invalidMembers);
   }
 
   return { status: 'empty', message: 'Save not found.' };
@@ -268,10 +283,6 @@ export async function storeSave(
   const score = await getNextSaveScore(ctx, postId);
 
   await ctx.redis.zAdd(postId, { member, score });
-  await ctx.redis.hSet(member, {
-    data: '{}',
-    owner: userId,
-  });
 
   return member;
 }
