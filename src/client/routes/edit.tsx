@@ -3,7 +3,11 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Preview } from '../components/Preview';
 import { saveSettings } from '../lib/api';
-import { patchPreviewSettingsCache, useEditQuery } from '../lib/queries';
+import {
+  patchSettingsCache,
+  usePreviewQuery,
+  useSettingsQuery,
+} from '../lib/queries';
 import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
 export const Route = createFileRoute('/edit')({
@@ -22,20 +26,24 @@ function mergeSettings(saved?: PostSettings): PostSettings {
 
 function EditPage() {
   const queryClient = useQueryClient();
-  const { data } = useEditQuery();
+  const { data: previewResponse } = usePreviewQuery();
+  const { data: settingsResponse } = useSettingsQuery();
   const [draft, setDraft] = useState<PostSettings | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const settings = useMemo(() => {
-    if (data?.status !== 'ok') return defaultSettings;
-    return draft ?? mergeSettings(data.data.settings);
-  }, [data, draft]);
+  const savedSettings = useMemo(() => {
+    if (settingsResponse?.status === 'ok') {
+      return mergeSettings(settingsResponse.data);
+    }
+    return defaultSettings;
+  }, [settingsResponse]);
+
+  const settings = draft ?? savedSettings;
 
   const mutation = useMutation({
     mutationFn: saveSettings,
     onSuccess: (_response, savedSettings) => {
-      patchPreviewSettingsCache(queryClient, ['edit'], savedSettings);
-      patchPreviewSettingsCache(queryClient, ['home'], savedSettings);
+      patchSettingsCache(queryClient, savedSettings);
       setDraft(null);
       setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
@@ -46,20 +54,12 @@ function EditPage() {
     },
   });
 
-  const previewData = useMemo(() => {
-    if (data?.status !== 'ok') return undefined;
-    return {
-      ...data.data,
-      settings,
-    };
-  }, [data, settings]);
+  const preview =
+    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
 
   const patchSettings = (patch: Partial<PostSettings>) => {
     setDraft((prev) => ({
-      ...(prev ??
-        (data?.status === 'ok'
-          ? mergeSettings(data.data.settings)
-          : defaultSettings)),
+      ...(prev ?? savedSettings),
       ...patch,
     }));
   };
@@ -86,7 +86,11 @@ function EditPage() {
 
   return (
     <div className="edit-container">
-      <Preview data={previewData} fallbackText="No preview available." />
+      <Preview
+        preview={preview}
+        settings={settings}
+        fallbackText="No preview available."
+      />
 
       <div
         className={`toolbar ${settings.toolbarCollapsed ? 'collapsed' : ''}`}

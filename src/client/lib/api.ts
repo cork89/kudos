@@ -1,6 +1,7 @@
 import type {
   ApiEditResponse,
   ApiPreviewResponse,
+  ApiSettingsResponse,
   PostSettings,
 } from '../../shared/types/api';
 
@@ -12,12 +13,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function fetchHome(): Promise<ApiPreviewResponse> {
-  return fetchJson<ApiPreviewResponse>('/api/home');
+export function fetchPreview(): Promise<ApiPreviewResponse> {
+  return fetchJson<ApiPreviewResponse>('/api/preview');
 }
 
-export function fetchEdit(): Promise<ApiPreviewResponse> {
-  return fetchJson<ApiPreviewResponse>('/api/edit');
+export function fetchSettings(): Promise<ApiSettingsResponse> {
+  return fetchJson<ApiSettingsResponse>('/api/settings');
 }
 
 export function saveSettings(settings: PostSettings): Promise<ApiEditResponse> {

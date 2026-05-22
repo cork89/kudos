@@ -28,14 +28,27 @@ const reddit = {
     id: 'abc123',
     title,
   }),
-  getCommentById: async (commentId: `t1_${string}`): Promise<Comment> =>
-    ({
+  getCommentById: async (commentId: `t1_${string}`): Promise<Comment> => {
+    if (commentId === 't1_parent123') {
+      return {
+        id: commentId,
+        postId: 't3_abc123',
+        parentId: '',
+        body: 'Anyone else think cassowaries are underrated?',
+        authorId: 't2_parent',
+        authorName: 'parent_user',
+      } as unknown as Comment;
+    }
+
+    return {
       id: commentId,
       postId: 't3_abc123',
+      parentId: 't1_parent123',
       body: 'cassowary has entered the chat',
       authorId: 't2_author',
       authorName: 'test',
-    }) as unknown as Comment,
+    } as unknown as Comment;
+  },
   getPostById: async (postId: `t3_${string}`): Promise<Post> =>
     ({
       id: postId,
@@ -46,7 +59,8 @@ const reddit = {
   getUserById: async (authorId: `t2_${string}`): Promise<User | undefined> =>
     ({
       id: authorId,
-      getSnoovatarUrl: async () => 'avatar_default.webp',
+      getSnoovatarUrl: async () =>
+        authorId === 't2_parent' ? 'avatar_parent.webp' : 'avatar_default.webp',
     }) as User,
 };
 

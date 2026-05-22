@@ -1,25 +1,40 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Preview } from '../components/Preview';
-import { useHomeQuery } from '../lib/queries';
+import { usePreviewQuery, useSettingsQuery } from '../lib/queries';
+import type { PostSettings } from '../../shared/types/api';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
+const defaultSettings: PostSettings = {
+  position: 'center',
+  theme: 'dark',
+  toolbarCollapsed: false,
+};
+
 function HomePage() {
-  const { data } = useHomeQuery();
+  const { data: previewResponse } = usePreviewQuery();
+  const { data: settingsResponse } = useSettingsQuery();
   const [viewMode, setViewMode] = useState(false);
 
-  const previewData = data?.status === 'ok' ? data.data : undefined;
+  const preview =
+    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  const settings = useMemo(() => {
+    if (settingsResponse?.status === 'ok') {
+      return settingsResponse.data;
+    }
+    return defaultSettings;
+  }, [settingsResponse]);
   const fallback =
-    data?.status === 'empty'
-      ? data.message
+    previewResponse?.status === 'empty'
+      ? previewResponse.message
       : 'Save a comment to preview it here.';
 
   return (
     <div className={`home-page ${viewMode ? 'view-mode' : ''}`}>
-      <Preview data={previewData} fallbackText={fallback} />
+      <Preview preview={preview} settings={settings} fallbackText={fallback} />
 
       {viewMode ? (
         <button

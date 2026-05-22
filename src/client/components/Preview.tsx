@@ -1,7 +1,12 @@
-import type { PreviewData } from '../../shared/types/api';
+import type {
+  PreviewComment,
+  PreviewData,
+  PostSettings,
+} from '../../shared/types/api';
 
 type PreviewProps = {
-  data?: PreviewData | undefined;
+  preview?: PreviewData | undefined;
+  settings?: PostSettings | undefined;
   fallbackText?: string | undefined;
 };
 
@@ -15,49 +20,70 @@ function getInitials(name?: string) {
   return initials || '??';
 }
 
-export function Preview({ data, fallbackText }: PreviewProps) {
-  if (!data) {
+function CommentEntry({ comment }: { comment: PreviewComment }) {
+  return (
+    <div className="comment-entry">
+      <div className="comment-header">
+        <div className="comment-avatar">
+          {comment.snoovatarUrl ? (
+            <img src={comment.snoovatarUrl} alt="snoovatar" />
+          ) : (
+            <span>{getInitials(comment.authorName)}</span>
+          )}
+        </div>
+        <span className="comment-author">{comment.authorName}</span>
+      </div>
+      <p className="comment-text">{comment.body}</p>
+    </div>
+  );
+}
+
+export function Preview({ preview, settings, fallbackText }: PreviewProps) {
+  if (!preview) {
     return (
       <div className="image-container" id="image-container">
-        <div className="comment-overlay">
-          <div className="comment-header">
-            <div className="comment-avatar">??</div>
-            <span className="comment-author">No data</span>
+        <div className="comment-stack comment-stack-solo pos-center">
+          <div className="comment-entry">
+            <div className="comment-header">
+              <div className="comment-avatar">??</div>
+              <span className="comment-author">No data</span>
+            </div>
+            <p className="comment-text">
+              {fallbackText ?? 'Save a comment to preview it here.'}
+            </p>
           </div>
-          <p className="comment-text">
-            {fallbackText ?? 'Save a comment to preview it here.'}
-          </p>
         </div>
       </div>
     );
   }
 
-  const themeClass = data.settings?.theme === 'light' ? 'light-theme' : '';
-  const positionClass = data.settings?.position
-    ? `pos-${data.settings.position}`
+  const themeClass = settings?.theme === 'light' ? 'light-theme' : '';
+  const positionClass = settings?.position
+    ? `pos-${settings.position}`
     : 'pos-center';
+  const hasParent = Boolean(preview.parentComment);
 
   return (
     <div className="image-container" id="image-container">
       <img
-        src={data.post.imageUrl ?? '/default-loading.webp'}
-        alt={data.post.title ?? 'preview'}
+        src={preview.post.imageUrl ?? '/default-loading.webp'}
+        alt={preview.post.title ?? 'preview'}
       />
       <div
-        className={`comment-overlay ${positionClass} ${themeClass}`.trim()}
+        className={`comment-stack ${hasParent ? 'comment-stack-threaded' : 'comment-stack-solo'} ${positionClass} ${themeClass}`.trim()}
         id="comment-overlay"
       >
-        <div className="comment-header">
-          <div className="comment-avatar">
-            {data.comment.snoovatarUrl ? (
-              <img src={data.comment.snoovatarUrl} alt="snoovatar" />
-            ) : (
-              <span>{getInitials(data.comment.authorName)}</span>
-            )}
-          </div>
-          <span className="comment-author">{data.comment.authorName}</span>
-        </div>
-        <p className="comment-text">{data.comment.body}</p>
+        {hasParent && preview.parentComment ? (
+          <>
+            <CommentEntry comment={preview.parentComment} />
+            <div className="comment-thread">
+              <div className="thread-line" aria-hidden="true" />
+              <CommentEntry comment={preview.comment} />
+            </div>
+          </>
+        ) : (
+          <CommentEntry comment={preview.comment} />
+        )}
       </div>
     </div>
   );

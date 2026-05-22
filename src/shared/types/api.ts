@@ -43,14 +43,24 @@ export type PreviewData = {
   postId: string;
   commentId: string;
   comment: PreviewComment;
+  parentComment?: PreviewComment | undefined;
   post: PreviewPost;
-  settings?: PostSettings | undefined;
 };
 
 export type ApiPreviewResponse =
   | {
       status: 'ok';
       data: PreviewData;
+    }
+  | {
+      status: 'empty';
+      message: string;
+    };
+
+export type ApiSettingsResponse =
+  | {
+      status: 'ok';
+      data: PostSettings;
     }
   | {
       status: 'empty';

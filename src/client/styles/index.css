@@ -7,6 +7,7 @@
   --text-muted: #8a8a8f;
   --accent: #e8ff4a;
   --accent-dim: rgba(232, 255, 74, 0.15);
+  --accent-thread: var(--accent);
   --coral: #ff6b5b;
 }
 
@@ -194,76 +195,79 @@ body::after {
   color: var(--bg-deep);
 }
 
-.comment-overlay {
+.comment-stack {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 360px;
+  width: 90%;
   background: rgba(10, 10, 11, 0.92);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(232, 255, 74, 0.3);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
-  max-width: 320px;
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  width: 90%;
 }
 
-.comment-overlay.pos-top-left {
+.comment-stack.pos-top-left {
   top: 15%;
   left: 5%;
   transform: none;
 }
 
-.comment-overlay.pos-top-center {
+.comment-stack.pos-top-center {
   top: 15%;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.comment-overlay.pos-top-right {
+.comment-stack.pos-top-right {
   top: 15%;
   left: auto;
   right: 5%;
   transform: none;
 }
 
-.comment-overlay.pos-center-left {
+.comment-stack.pos-center-left {
   top: 50%;
   left: 5%;
   transform: translateY(-50%);
 }
 
-.comment-overlay.pos-center {
+.comment-stack.pos-center {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 
-.comment-overlay.pos-center-right {
+.comment-stack.pos-center-right {
   top: 50%;
   left: auto;
   right: 5%;
   transform: translateY(-50%);
 }
 
-.comment-overlay.pos-bottom-left {
+.comment-stack.pos-bottom-left {
   top: auto;
   bottom: 15%;
   left: 5%;
   transform: none;
 }
 
-.comment-overlay.pos-bottom-center {
+.comment-stack.pos-bottom-center {
   top: auto;
   bottom: 15%;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.comment-overlay.pos-bottom-right {
+.comment-stack.pos-bottom-right {
   top: auto;
   bottom: 15%;
   left: auto;
@@ -271,16 +275,38 @@ body::after {
   transform: none;
 }
 
-.home-page:not(.view-mode) .comment-overlay.pos-bottom-left,
-.home-page:not(.view-mode) .comment-overlay.pos-bottom-center,
-.home-page:not(.view-mode) .comment-overlay.pos-bottom-right {
+.home-page:not(.view-mode) .comment-stack.pos-bottom-left,
+.home-page:not(.view-mode) .comment-stack.pos-bottom-center,
+.home-page:not(.view-mode) .comment-stack.pos-bottom-right {
   bottom: 6rem;
 }
 
-.home-page.view-mode .comment-overlay.pos-bottom-left,
-.home-page.view-mode .comment-overlay.pos-bottom-center,
-.home-page.view-mode .comment-overlay.pos-bottom-right {
+.home-page.view-mode .comment-stack.pos-bottom-left,
+.home-page.view-mode .comment-stack.pos-bottom-center,
+.home-page.view-mode .comment-stack.pos-bottom-right {
   bottom: 4.5rem;
+}
+
+.comment-thread {
+  display: flex;
+  align-items: stretch;
+  margin-top: 1rem;
+  padding-left: 0.5rem;
+}
+
+.thread-line {
+  flex-shrink: 0;
+  width: 2px;
+  margin-right: 0.75rem;
+  margin-left: 0.35rem;
+  background: var(--accent-thread);
+  border-radius: 1px;
+  align-self: stretch;
+}
+
+.comment-stack-threaded .comment-thread .comment-entry {
+  flex: 1;
+  min-width: 0;
 }
 
 .comment-header {
@@ -328,7 +354,8 @@ body::after {
   color: rgba(250, 250, 250, 0.85);
 }
 
-.light-theme.comment-overlay {
+.light-theme.comment-stack {
+  --accent-thread: #7a9200;
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(100, 100, 100, 0.3);
   box-shadow:

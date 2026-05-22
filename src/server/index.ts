@@ -12,6 +12,7 @@ import { createPost } from './core/post';
 import type {
   ApiEditResponse,
   ApiPreviewResponse,
+  ApiSettingsResponse,
   PostSettings,
   PreviewData,
   RedditContext,
@@ -73,9 +74,27 @@ async function getRecentPostSlug(
   };
 }
 
-async function buildPreviewData(
+async function toPreviewComment(
   ctx: RedditContext,
-  includeSettings: boolean
+  commentId: string,
+  comment: Awaited<ReturnType<typeof ctx.reddit.getCommentById>>
+): Promise<PreviewData['comment']> {
+  const author = await ctx.reddit.getUserById(
+    comment.authorId as `t2_${string}`
+  );
+  const snoovatarUrl = await author?.getSnoovatarUrl();
+
+  return {
+    id: commentId,
+    body: comment.body,
+    authorName: comment.authorName,
+    authorId: comment.authorId as `t2_${string}`,
+    snoovatarUrl,
+  };
+}
+
+async function buildPreviewData(
+  ctx: RedditContext
 ): Promise<ApiPreviewResponse> {
   const recent = await getRecentPostSlug(ctx);
   if (recent.status !== 'ok') {
@@ -85,41 +104,42 @@ async function buildPreviewData(
     };
   }
 
-  const [comment, post] = await Promise.all([
-    ctx.reddit.getCommentById(recent.commentId as `t1_${string}`),
+  const comment = await ctx.reddit.getCommentById(
+    recent.commentId as `t1_${string}`
+  );
+  const parentCommentId =
+    comment.parentId?.startsWith('t1_') === true
+      ? (comment.parentId as `t1_${string}`)
+      : undefined;
+
+  const [post, childPreview, parentPreview] = await Promise.all([
     ctx.reddit.getPostById(recent.postId as `t3_${string}`),
+    toPreviewComment(ctx, recent.commentId, comment),
+    parentCommentId
+      ? ctx.reddit
+          .getCommentById(parentCommentId)
+          .then((parentComment) =>
+            toPreviewComment(ctx, parentCommentId, parentComment)
+          )
+          .catch((error) => {
+            console.error('Failed to fetch parent comment:', error);
+            return undefined;
+          })
+      : Promise.resolve(undefined),
   ]);
 
-  const author = await ctx.reddit.getUserById(
-    comment.authorId as `t2_${string}`
-  );
-  const snoovatarUrl = await author?.getSnoovatarUrl();
   const thumbnail = await post.getEnrichedThumbnail();
-
-  let settings: PostSettings | undefined;
-  if (includeSettings) {
-    const settingsJson = await ctx.redis.hGet(recent.slug, 'data');
-    settings = settingsJson
-      ? (JSON.parse(settingsJson) as PostSettings)
-      : undefined;
-  }
 
   const payload: PreviewData = {
     postId: recent.postId,
     commentId: recent.commentId,
-    comment: {
-      id: recent.commentId,
-      body: comment.body,
-      authorName: comment.authorName,
-      authorId: comment.authorId as `t2_${string}`,
-      snoovatarUrl,
-    },
+    comment: childPreview,
+    parentComment: parentPreview,
     post: {
       id: recent.postId,
       title: post.title,
       imageUrl: thumbnail?.image?.url ?? undefined,
     },
-    settings,
   };
 
   return {
@@ -128,13 +148,41 @@ async function buildPreviewData(
   };
 }
 
-app.get('/api/home', async (c) => {
-  const response = await buildPreviewData(redditCtx, true);
+const defaultSettings: PostSettings = {
+  position: 'center',
+  theme: 'dark',
+  toolbarCollapsed: false,
+};
+
+async function buildSettingsResponse(
+  ctx: RedditContext
+): Promise<ApiSettingsResponse> {
+  const recent = await getRecentPostSlug(ctx);
+  if (recent.status !== 'ok') {
+    return {
+      status: 'empty',
+      message: recent.message,
+    };
+  }
+
+  const settingsJson = await ctx.redis.hGet(recent.slug, 'data');
+  const settings = settingsJson
+    ? { ...defaultSettings, ...(JSON.parse(settingsJson) as PostSettings) }
+    : defaultSettings;
+
+  return {
+    status: 'ok',
+    data: settings,
+  };
+}
+
+app.get('/api/preview', async (c) => {
+  const response = await buildPreviewData(redditCtx);
   return c.json(response);
 });
 
-app.get('/api/edit', async (c) => {
-  const response = await buildPreviewData(redditCtx, true);
+app.get('/api/settings', async (c) => {
+  const response = await buildSettingsResponse(redditCtx);
   return c.json(response);
 });
 

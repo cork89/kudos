@@ -1,34 +1,27 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { fetchEdit, fetchHome } from './api';
-import type { ApiPreviewResponse, PostSettings } from '../../shared/types/api';
+import { fetchPreview, fetchSettings } from './api';
+import type { ApiSettingsResponse, PostSettings } from '../../shared/types/api';
 
-export function patchPreviewSettingsCache(
+export function patchSettingsCache(
   queryClient: QueryClient,
-  queryKey: readonly ['home'] | readonly ['edit'],
   settings: PostSettings
 ) {
-  queryClient.setQueryData<ApiPreviewResponse>(queryKey, (old) => {
-    if (old?.status !== 'ok') return old;
-    return {
-      ...old,
-      data: {
-        ...old.data,
-        settings,
-      },
-    };
+  queryClient.setQueryData<ApiSettingsResponse>(['settings'], {
+    status: 'ok',
+    data: settings,
   });
 }
 
-export function useHomeQuery() {
+export function usePreviewQuery() {
   return useQuery({
-    queryKey: ['home'],
-    queryFn: fetchHome,
+    queryKey: ['preview'],
+    queryFn: fetchPreview,
   });
 }
 
-export function useEditQuery() {
+export function useSettingsQuery() {
   return useQuery({
-    queryKey: ['edit'],
-    queryFn: fetchEdit,
+    queryKey: ['settings'],
+    queryFn: fetchSettings,
   });
 }
