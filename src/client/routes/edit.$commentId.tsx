@@ -5,13 +5,12 @@ import { Preview } from '../components/Preview';
 import { saveSettings } from '../lib/api';
 import {
   patchSettingsCache,
-  usePreviewQuery,
+  usePreviewItemQuery,
   useSettingsQuery,
 } from '../lib/queries';
-import { getFirstPreview } from '../lib/preview';
 import { CommentPosition, PostSettings, Theme } from '../../shared/types/api';
 
-export const Route = createFileRoute('/edit')({
+export const Route = createFileRoute('/edit/$commentId')({
   component: EditPage,
 });
 
@@ -26,11 +25,13 @@ function mergeSettings(saved?: PostSettings): PostSettings {
 }
 
 function EditPage() {
+  const { commentId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: previewResponse, isLoading: isPreviewLoading } =
-    usePreviewQuery();
-  const preview = getFirstPreview(previewResponse);
-  const { data: settingsResponse } = useSettingsQuery(preview?.commentId);
+    usePreviewItemQuery(commentId);
+  const preview =
+    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  const { data: settingsResponse } = useSettingsQuery(commentId);
   const [draft, setDraft] = useState<PostSettings | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -45,14 +46,17 @@ function EditPage() {
 
   const mutation = useMutation({
     mutationFn: ({
-      commentId,
-      settings,
+      commentId: saveCommentId,
+      settings: nextSettings,
     }: {
       commentId: string;
       settings: PostSettings;
-    }) => saveSettings(commentId, settings),
-    onSuccess: (_response, { commentId, settings }) => {
-      patchSettingsCache(queryClient, commentId, settings);
+    }) => saveSettings(saveCommentId, nextSettings),
+    onSuccess: (
+      _response,
+      { commentId: saveCommentId, settings: nextSettings }
+    ) => {
+      patchSettingsCache(queryClient, saveCommentId, nextSettings);
       setDraft(null);
       setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
@@ -65,8 +69,7 @@ function EditPage() {
 
   if (
     !isPreviewLoading &&
-    previewResponse?.status === 'ok' &&
-    !getFirstPreview(previewResponse)?.canEdit
+    (previewResponse?.status === 'empty' || (preview && !preview.canEdit))
   ) {
     return <Navigate replace to="/" />;
   }

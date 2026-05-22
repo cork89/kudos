@@ -63,6 +63,16 @@ export type ApiPreviewResponse =
       message: string;
     };
 
+export type ApiPreviewItemResponse =
+  | {
+      status: 'ok';
+      data: PreviewData;
+    }
+  | {
+      status: 'empty';
+      message: string;
+    };
+
 export type ApiSettingsResponse =
   | {
       status: 'ok';

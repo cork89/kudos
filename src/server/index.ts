@@ -14,11 +14,13 @@ import {
   getRecentSaves,
   getSaveByCommentId,
   getSaveForEdit,
+  hasOlderSaves,
   isSaveStored,
   storeSave,
 } from './core/saves';
 import type {
   ApiEditResponse,
+  ApiPreviewItemResponse,
   ApiPreviewResponse,
   ApiSettingsResponse,
   PostSettings,
@@ -107,36 +109,109 @@ async function buildPreviewList(
   ctx: RedditContext,
   options: { limit?: number; before?: number } = {}
 ): Promise<ApiPreviewResponse> {
-  const recent = await getRecentSaves(ctx, options);
-  if (recent.status !== 'ok') {
-    return {
-      status: 'empty',
-      message: recent.message,
-    };
+  const limit = options.limit ?? 10;
+  let before: number | undefined = options.before;
+  const collected: { item: PreviewData; score: number }[] = [];
+  let postId: string | null = null;
+
+  while (collected.length < limit) {
+    const recentOptions: { limit: number; before?: number } = { limit };
+    if (before !== undefined) {
+      recentOptions.before = before;
+    }
+
+    const recent = await getRecentSaves(ctx, recentOptions);
+    if (recent.status !== 'ok') {
+      if (collected.length === 0) {
+        return {
+          status: 'empty',
+          message: recent.message,
+        };
+      }
+      break;
+    }
+
+    postId = recent.postId;
+
+    const oldestInBatch = recent.saves[recent.saves.length - 1];
+    if (!oldestInBatch) {
+      break;
+    }
+
+    const previewResults = await Promise.all(
+      recent.saves.map(async (save) => {
+        const item = await buildPreviewItem(ctx, save);
+        return item ? { item, score: save.score } : null;
+      })
+    );
+
+    for (const result of previewResults) {
+      if (result) {
+        collected.push(result);
+      }
+    }
+
+    const hasOlder = await hasOlderSaves(
+      ctx,
+      recent.postId,
+      oldestInBatch.score
+    );
+
+    if (!hasOlder || collected.length >= limit) {
+      break;
+    }
+
+    before = oldestInBatch.score;
   }
 
-  const previewResults = await Promise.all(
-    recent.saves.map((save) => buildPreviewItem(ctx, save))
-  );
-  const items = previewResults.filter(
-    (item): item is PreviewData => item !== null
-  );
-
-  if (items.length === 0) {
+  if (collected.length === 0) {
     return {
       status: 'empty',
       message: 'No saved posts yet.',
     };
   }
 
-  const oldestSave = recent.saves[recent.saves.length - 1];
+  const page = collected.slice(0, limit);
+  const oldestOnPage = page[page.length - 1];
+  let cursor: number | null = null;
+
+  if (oldestOnPage && postId) {
+    const hasOlder = await hasOlderSaves(ctx, postId, oldestOnPage.score);
+    cursor = hasOlder ? oldestOnPage.score : null;
+  }
 
   return {
     status: 'ok',
     data: {
-      items,
-      cursor: oldestSave?.score ?? null,
+      items: page.map((entry) => entry.item),
+      cursor,
     },
+  };
+}
+
+async function buildPreviewItemResponse(
+  ctx: RedditContext,
+  commentId: string
+): Promise<ApiPreviewItemResponse> {
+  const save = await getSaveByCommentId(ctx, commentId);
+  if (save.status !== 'ok') {
+    return {
+      status: 'empty',
+      message: save.message,
+    };
+  }
+
+  const item = await buildPreviewItem(ctx, save);
+  if (!item) {
+    return {
+      status: 'empty',
+      message: 'Preview unavailable.',
+    };
+  }
+
+  return {
+    status: 'ok',
+    data: item,
   };
 }
 
@@ -186,6 +261,22 @@ app.get('/api/preview', async (c) => {
   }
 
   const response = await buildPreviewList(redditCtx, options);
+  return c.json(response);
+});
+
+app.get('/api/preview/:commentId', async (c) => {
+  const commentId = c.req.param('commentId');
+  if (!commentId) {
+    return c.json(
+      {
+        status: 'empty',
+        message: 'Invalid commentId.',
+      },
+      400
+    );
+  }
+
+  const response = await buildPreviewItemResponse(redditCtx, commentId);
   return c.json(response);
 });
 

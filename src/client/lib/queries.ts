@@ -1,5 +1,5 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { fetchPreview, fetchSettings } from './api';
+import { fetchPreview, fetchPreviewByCommentId, fetchSettings } from './api';
 import type { ApiSettingsResponse, PostSettings } from '../../shared/types/api';
 
 export function patchSettingsCache(
@@ -17,6 +17,13 @@ export function usePreviewQuery() {
   return useQuery({
     queryKey: ['preview', 'list'],
     queryFn: () => fetchPreview(),
+  });
+}
+
+export function usePreviewItemQuery(commentId: string) {
+  return useQuery({
+    queryKey: ['preview', commentId],
+    queryFn: () => fetchPreviewByCommentId(commentId),
   });
 }
 

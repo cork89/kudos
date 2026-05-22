@@ -135,7 +135,11 @@ function HomePage() {
           ) : null}
           <div className="home-actions-center">
             {preview?.canEdit ? (
-              <Link className="home-action-btn" to="/edit">
+              <Link
+                className="home-action-btn"
+                to="/edit/$commentId"
+                params={{ commentId: preview.commentId }}
+              >
                 <span className="home-action-btn-icon">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

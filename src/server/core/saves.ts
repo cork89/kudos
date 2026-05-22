@@ -134,6 +134,17 @@ export async function getRecentSaves(
   return { status: 'ok', postId, saves };
 }
 
+export async function hasOlderSaves(
+  ctx: RedditContext,
+  postId: string,
+  beforeScore: number
+): Promise<boolean> {
+  const older = await ctx.redis.zRange(postId, 0, beforeScore - 1, {
+    by: 'score',
+  });
+  return older.length > 0;
+}
+
 export async function getLatestSave(ctx: RedditContext): Promise<SaveResult> {
   const recent = await getRecentSaves(ctx, { limit: 1 });
   if (recent.status !== 'ok') {

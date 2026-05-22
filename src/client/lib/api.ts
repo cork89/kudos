@@ -1,5 +1,6 @@
 import type {
   ApiEditResponse,
+  ApiPreviewItemResponse,
   ApiPreviewResponse,
   ApiSettingsResponse,
   PostSettings,
@@ -28,6 +29,14 @@ export function fetchPreview(options?: {
   const query = params.toString();
   return fetchJson<ApiPreviewResponse>(
     query ? `/api/preview?${query}` : '/api/preview'
+  );
+}
+
+export function fetchPreviewByCommentId(
+  commentId: string
+): Promise<ApiPreviewItemResponse> {
+  return fetchJson<ApiPreviewItemResponse>(
+    `/api/preview/${encodeURIComponent(commentId)}`
   );
 }
 
