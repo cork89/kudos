@@ -9,6 +9,14 @@ import {
 import { IncomingMessage, ServerResponse } from 'node:http';
 
 import { createPost } from './core/post';
+import {
+  canEditSave,
+  getLatestSave,
+  getSaveByCommentId,
+  getSaveForEdit,
+  isSaveStored,
+  storeSave,
+} from './core/saves';
 import type {
   ApiEditResponse,
   ApiPreviewResponse,
@@ -25,54 +33,6 @@ const redditCtx: RedditContext = {
   redis,
   context,
 };
-
-type RecentPostResult =
-  | {
-      status: 'ok';
-      userId: string;
-      slug: string;
-      postId: string;
-      commentId: string;
-    }
-  | { status: 'empty'; message: string }
-  | { status: 'error'; message: string };
-
-async function getRecentPostSlug(
-  ctx: RedditContext
-): Promise<RecentPostResult> {
-  const userId = ctx.context.userId;
-  if (!userId) {
-    return { status: 'error', message: 'No user found.' };
-  }
-
-  const recentPostsJson = await ctx.redis.hGet(userId, 'posts');
-  if (!recentPostsJson) {
-    return { status: 'empty', message: 'No saved posts yet.' };
-  }
-
-  const recentPosts = JSON.parse(recentPostsJson) as string[];
-  if (recentPosts.length === 0) {
-    return { status: 'empty', message: 'No saved posts yet.' };
-  }
-
-  const recentPostSlug = recentPosts[0] ?? '';
-  const [postId, commentId] = recentPostSlug.split('-');
-  if (!postId || !commentId) {
-    recentPosts.splice(0, 1);
-    await ctx.redis.hSet(userId, {
-      posts: JSON.stringify(recentPosts),
-    });
-    return { status: 'empty', message: 'Invalid post data.' };
-  }
-
-  return {
-    status: 'ok',
-    userId,
-    slug: recentPostSlug,
-    postId,
-    commentId,
-  };
-}
 
 async function toPreviewComment(
   ctx: RedditContext,
@@ -96,7 +56,7 @@ async function toPreviewComment(
 async function buildPreviewData(
   ctx: RedditContext
 ): Promise<ApiPreviewResponse> {
-  const recent = await getRecentPostSlug(ctx);
+  const recent = await getLatestSave(ctx);
   if (recent.status !== 'ok') {
     return {
       status: 'empty',
@@ -107,13 +67,14 @@ async function buildPreviewData(
   const comment = await ctx.reddit.getCommentById(
     recent.commentId as `t1_${string}`
   );
+  const postId = comment.postId;
   const parentCommentId =
     comment.parentId?.startsWith('t1_') === true
       ? (comment.parentId as `t1_${string}`)
       : undefined;
 
   const [post, childPreview, parentPreview] = await Promise.all([
-    ctx.reddit.getPostById(recent.postId as `t3_${string}`),
+    ctx.reddit.getPostById(postId as `t3_${string}`),
     toPreviewComment(ctx, recent.commentId, comment),
     parentCommentId
       ? ctx.reddit
@@ -131,15 +92,16 @@ async function buildPreviewData(
   const thumbnail = await post.getEnrichedThumbnail();
 
   const payload: PreviewData = {
-    postId: recent.postId,
+    postId,
     commentId: recent.commentId,
     comment: childPreview,
     parentComment: parentPreview,
     post: {
-      id: recent.postId,
+      id: postId,
       title: post.title,
       imageUrl: thumbnail?.image?.url ?? undefined,
     },
+    canEdit: canEditSave(ctx, recent.ownerId),
   };
 
   return {
@@ -155,17 +117,18 @@ const defaultSettings: PostSettings = {
 };
 
 async function buildSettingsResponse(
-  ctx: RedditContext
+  ctx: RedditContext,
+  commentId: string
 ): Promise<ApiSettingsResponse> {
-  const recent = await getRecentPostSlug(ctx);
-  if (recent.status !== 'ok') {
+  const save = await getSaveByCommentId(ctx, commentId);
+  if (save.status !== 'ok') {
     return {
       status: 'empty',
-      message: recent.message,
+      message: save.message,
     };
   }
 
-  const settingsJson = await ctx.redis.hGet(recent.slug, 'data');
+  const settingsJson = await ctx.redis.hGet(save.member, 'data');
   const settings = settingsJson
     ? { ...defaultSettings, ...(JSON.parse(settingsJson) as PostSettings) }
     : defaultSettings;
@@ -181,24 +144,61 @@ app.get('/api/preview', async (c) => {
   return c.json(response);
 });
 
-app.get('/api/settings', async (c) => {
-  const response = await buildSettingsResponse(redditCtx);
+app.get('/api/settings/:commentId', async (c) => {
+  const commentId = c.req.param('commentId');
+  if (!commentId) {
+    return c.json(
+      {
+        status: 'empty',
+        message: 'Invalid commentId.',
+      },
+      400
+    );
+  }
+
+  const response = await buildSettingsResponse(redditCtx, commentId);
   return c.json(response);
 });
 
-app.post('/api/edit', async (c) => {
-  const recent = await getRecentPostSlug(redditCtx);
-  if (recent.status !== 'ok') {
+app.post('/api/settings/:commentId/edit', async (c) => {
+  const userId = context.userId;
+  if (!userId) {
     const response: ApiEditResponse = {
       status: 'error',
-      message: recent.message,
+      message: 'No user found.',
     };
-    return c.json(response, recent.status === 'error' ? 401 : 404);
+    return c.json(response, 401);
   }
 
-  const body = (await c.req.json()) as PostSettings;
-  await redditCtx.redis.hSet(recent.slug, {
-    data: JSON.stringify(body),
+  const commentId = c.req.param('commentId');
+  if (!commentId) {
+    const response: ApiEditResponse = {
+      status: 'error',
+      message: 'Invalid commentId.',
+    };
+    return c.json(response, 400);
+  }
+
+  const save = await getSaveForEdit(redditCtx, commentId);
+  if (save.status !== 'ok') {
+    const response: ApiEditResponse = {
+      status: 'error',
+      message: save.message,
+    };
+    return c.json(response, save.status === 'error' ? 401 : 404);
+  }
+
+  if (!canEditSave(redditCtx, save.ownerId)) {
+    const response: ApiEditResponse = {
+      status: 'error',
+      message: 'You cannot edit this save.',
+    };
+    return c.json(response, 403);
+  }
+
+  const settings = (await c.req.json()) as PostSettings;
+  await redditCtx.redis.hSet(save.member, {
+    data: JSON.stringify(settings),
   });
 
   const response: ApiEditResponse = {
@@ -208,6 +208,7 @@ app.post('/api/edit', async (c) => {
   return c.json(response);
 });
 
+// DEPRECATED: unused — saves go through /internal/menu/add-to-commenteer.
 app.post('/api/create', async (c) => {
   const userId = context.userId;
   if (!userId) {
@@ -233,12 +234,7 @@ app.post('/api/create', async (c) => {
         400
       );
     }
-    const slug = `${postId}-${commentId}`;
-
-    const userPostsJson = await redis.hGet(userId, 'posts');
-    const posts = JSON.parse(userPostsJson ?? '[]') as string[];
-
-    if (posts.includes(slug)) {
+    if (await isSaveStored(redditCtx, userId, commentId)) {
       return c.json(
         {
           status: 'error',
@@ -248,20 +244,16 @@ app.post('/api/create', async (c) => {
       );
     }
 
-    posts.unshift(slug);
-    await redis.hSet(userId, {
-      posts: JSON.stringify(posts),
-    });
-
-    await redis.hSet(slug, {
-      data: '{}',
-      owner: userId,
-    });
-
-    const allPostsJson = await redis.get('posts');
-    const allPosts = JSON.parse(allPostsJson ?? '[]') as string[];
-    allPosts.unshift(slug);
-    await redis.set('posts', JSON.stringify(allPosts));
+    const member = await storeSave(redditCtx, userId, commentId);
+    if (!member) {
+      return c.json(
+        {
+          status: 'error',
+          message: 'No active post.',
+        },
+        404
+      );
+    }
 
     const redirectUrl = await redis.hGet('meta', 'current');
     return c.json(
@@ -341,33 +333,21 @@ app.post('/internal/menu/add-to-commenteer', async (c) => {
       });
     }
 
-    const comment = await reddit.getCommentById(targetId);
-    const postId = comment.postId;
-    const slug = `${postId}-${targetId}`;
+    await reddit.getCommentById(targetId);
 
-    const userPostsJson = await redis.hGet(userId, 'posts');
-    const posts = JSON.parse(userPostsJson ?? '[]') as string[];
-
-    if (posts.includes(slug)) {
+    if (await isSaveStored(redditCtx, userId, targetId)) {
       return c.json({
         showToast: 'Comment already saved.',
       });
     }
 
-    posts.unshift(slug);
-    await redis.hSet(userId, {
-      posts: JSON.stringify(posts),
-    });
-
-    await redis.hSet(slug, {
-      data: '{}',
-      owner: userId,
-    });
-
-    const allPostsJson = await redis.get('posts');
-    const allPosts = JSON.parse(allPostsJson ?? '[]') as string[];
-    allPosts.unshift(slug);
-    await redis.set('posts', JSON.stringify(allPosts));
+    const member = await storeSave(redditCtx, userId, targetId);
+    if (!member) {
+      return c.json({
+        showToast:
+          'There is no active commenteer post, please contact the mods.',
+      });
+    }
 
     const redirectUrl = (await redis.hGet('meta', 'current')) as
       | `t3_${string}`

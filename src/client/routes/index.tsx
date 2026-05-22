@@ -16,11 +16,11 @@ const defaultSettings: PostSettings = {
 
 function HomePage() {
   const { data: previewResponse } = usePreviewQuery();
-  const { data: settingsResponse } = useSettingsQuery();
-  const [viewMode, setViewMode] = useState(false);
-
   const preview =
     previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  const { data: settingsResponse } = useSettingsQuery(preview?.commentId);
+  const [viewMode, setViewMode] = useState(false);
+
   const settings = useMemo(() => {
     if (settingsResponse?.status === 'ok') {
       return settingsResponse.data;
@@ -62,19 +62,21 @@ function HomePage() {
         </button>
       ) : (
         <nav className="home-actions" aria-label="Page actions">
-          <Link className="home-action-btn" to="/edit">
-            <span className="home-action-btn-icon">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            </span>
-            Edit
-          </Link>
+          {preview?.canEdit ? (
+            <Link className="home-action-btn" to="/edit">
+              <span className="home-action-btn-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </span>
+              Edit
+            </Link>
+          ) : null}
           <button
             className="home-action-btn"
             type="button"

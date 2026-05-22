@@ -45,6 +45,7 @@ export type PreviewData = {
   comment: PreviewComment;
   parentComment?: PreviewComment | undefined;
   post: PreviewPost;
+  canEdit: boolean;
 };
 
 export type ApiPreviewResponse =

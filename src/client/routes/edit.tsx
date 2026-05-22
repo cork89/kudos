@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Preview } from '../components/Preview';
@@ -26,8 +26,11 @@ function mergeSettings(saved?: PostSettings): PostSettings {
 
 function EditPage() {
   const queryClient = useQueryClient();
-  const { data: previewResponse } = usePreviewQuery();
-  const { data: settingsResponse } = useSettingsQuery();
+  const { data: previewResponse, isLoading: isPreviewLoading } =
+    usePreviewQuery();
+  const preview =
+    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  const { data: settingsResponse } = useSettingsQuery(preview?.commentId);
   const [draft, setDraft] = useState<PostSettings | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -41,9 +44,15 @@ function EditPage() {
   const settings = draft ?? savedSettings;
 
   const mutation = useMutation({
-    mutationFn: saveSettings,
-    onSuccess: (_response, savedSettings) => {
-      patchSettingsCache(queryClient, savedSettings);
+    mutationFn: ({
+      commentId,
+      settings,
+    }: {
+      commentId: string;
+      settings: PostSettings;
+    }) => saveSettings(commentId, settings),
+    onSuccess: (_response, { commentId, settings }) => {
+      patchSettingsCache(queryClient, commentId, settings);
       setDraft(null);
       setToast('Settings saved!');
       setTimeout(() => setToast(null), 2000);
@@ -54,8 +63,13 @@ function EditPage() {
     },
   });
 
-  const preview =
-    previewResponse?.status === 'ok' ? previewResponse.data : undefined;
+  if (
+    !isPreviewLoading &&
+    previewResponse?.status === 'ok' &&
+    !previewResponse.data.canEdit
+  ) {
+    return <Navigate replace to="/" />;
+  }
 
   const patchSettings = (patch: Partial<PostSettings>) => {
     setDraft((prev) => ({
@@ -77,7 +91,11 @@ function EditPage() {
   };
 
   const save = () => {
-    mutation.mutate(settings);
+    if (!preview?.commentId) {
+      return;
+    }
+
+    mutation.mutate({ commentId: preview.commentId, settings });
   };
 
   const toggleCollapsed = () => {

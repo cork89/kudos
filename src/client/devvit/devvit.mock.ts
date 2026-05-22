@@ -2,7 +2,9 @@ function navigateTo(url: string) {
   window.location.href = url;
 }
 
-const context = {};
+const context = {
+  userId: 't2_test',
+};
 
 function requestExpandedMode(_event: any, expandTo: string) {
   const baseURL = window.location.origin;

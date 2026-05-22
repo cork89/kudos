@@ -17,16 +17,24 @@ export function fetchPreview(): Promise<ApiPreviewResponse> {
   return fetchJson<ApiPreviewResponse>('/api/preview');
 }
 
-export function fetchSettings(): Promise<ApiSettingsResponse> {
-  return fetchJson<ApiSettingsResponse>('/api/settings');
+export function fetchSettings(commentId: string): Promise<ApiSettingsResponse> {
+  return fetchJson<ApiSettingsResponse>(
+    `/api/settings/${encodeURIComponent(commentId)}`
+  );
 }
 
-export function saveSettings(settings: PostSettings): Promise<ApiEditResponse> {
-  return fetchJson<ApiEditResponse>('/api/edit', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(settings),
-  });
+export function saveSettings(
+  commentId: string,
+  settings: PostSettings
+): Promise<ApiEditResponse> {
+  return fetchJson<ApiEditResponse>(
+    `/api/settings/${encodeURIComponent(commentId)}/edit`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(settings),
+    }
+  );
 }

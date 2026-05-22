@@ -4,9 +4,10 @@ import type { ApiSettingsResponse, PostSettings } from '../../shared/types/api';
 
 export function patchSettingsCache(
   queryClient: QueryClient,
+  commentId: string,
   settings: PostSettings
 ) {
-  queryClient.setQueryData<ApiSettingsResponse>(['settings'], {
+  queryClient.setQueryData<ApiSettingsResponse>(['settings', commentId], {
     status: 'ok',
     data: settings,
   });
@@ -19,9 +20,10 @@ export function usePreviewQuery() {
   });
 }
 
-export function useSettingsQuery() {
+export function useSettingsQuery(commentId: string | undefined) {
   return useQuery({
-    queryKey: ['settings'],
-    queryFn: fetchSettings,
+    queryKey: ['settings', commentId],
+    queryFn: () => fetchSettings(commentId!),
+    enabled: Boolean(commentId),
   });
 }

@@ -8,20 +8,43 @@ import type {
 
 const context: Context = {
   userId: 't2_test',
+  postId: 't3_commenteer',
   subredditName: 'ssr_test2_dev',
 } as unknown as Context;
 
 type DbValue = Record<string, string> | string | Post | Comment | User;
+type SortedSetEntry = { member: string; score: number };
 
 const db: Record<string, DbValue> = {
-  t2_test: {
-    posts: '["t3_abc123-t1_commentId"]',
+  meta: {
+    current: 't3_commenteer',
   },
-  't3_abc123-t1_commentId': {
+  't3_commenteer:seq': '1',
+  't1_commentId-t2_test': {
     data: '{}',
     owner: 't2_test',
   },
 };
+
+const sortedSets: Record<string, SortedSetEntry[]> = {
+  t3_commenteer: [{ member: 't1_commentId-t2_test', score: 1 }],
+};
+
+function getSortedSet(key: string): SortedSetEntry[] {
+  if (!sortedSets[key]) {
+    sortedSets[key] = [];
+  }
+  return sortedSets[key];
+}
+
+function sortByRank(entries: SortedSetEntry[]): SortedSetEntry[] {
+  return [...entries].sort((a, b) => {
+    if (a.score !== b.score) {
+      return a.score - b.score;
+    }
+    return a.member.localeCompare(b.member);
+  });
+}
 
 const reddit = {
   submitCustomPost: async ({ title }: { title: string }) => ({
@@ -33,7 +56,7 @@ const reddit = {
       return {
         id: commentId,
         postId: 't3_abc123',
-        parentId: '',
+        parentId: 't3_abc123',
         body: 'Anyone else think cassowaries are underrated?',
         authorId: 't2_parent',
         authorName: 'parent_user',
@@ -92,22 +115,99 @@ async function set(key: string, value: string): Promise<boolean> {
   return true;
 }
 
+async function zAdd(
+  key: string,
+  ...entries: SortedSetEntry[]
+): Promise<number> {
+  const set = getSortedSet(key);
+  let added = 0;
+
+  for (const entry of entries) {
+    const existing = set.find((item) => item.member === entry.member);
+    if (existing) {
+      existing.score = entry.score;
+    } else {
+      set.push({ ...entry });
+      added += 1;
+    }
+  }
+
+  return added;
+}
+
+async function zCard(key: string): Promise<number> {
+  return getSortedSet(key).length;
+}
+
+async function zRange(
+  key: string,
+  start: number,
+  stop: number,
+  options?: { by?: 'rank' | 'score' | 'lex' }
+): Promise<SortedSetEntry[]> {
+  const by = options?.by ?? 'rank';
+  const set = getSortedSet(key);
+
+  if (by === 'rank') {
+    const sorted = sortByRank(set);
+    const normalizedStart =
+      start < 0 ? Math.max(sorted.length + start, 0) : start;
+    const normalizedStop = stop < 0 ? Math.max(sorted.length + stop, 0) : stop;
+    return sorted.slice(normalizedStart, normalizedStop + 1);
+  }
+
+  if (by === 'score') {
+    const sorted = sortByRank(set);
+    return sorted.filter(
+      (entry) => entry.score >= start && entry.score <= stop
+    );
+  }
+
+  return sortByRank(set);
+}
+
+async function zScore(
+  key: string,
+  member: string
+): Promise<number | undefined> {
+  const entry = getSortedSet(key).find((item) => item.member === member);
+  return entry?.score;
+}
+
+async function zRem(key: string, members: string[]): Promise<number> {
+  const set = getSortedSet(key);
+  const before = set.length;
+  sortedSets[key] = set.filter((entry) => !members.includes(entry.member));
+  return before - sortedSets[key].length;
+}
+
+async function incrBy(key: string, increment: number): Promise<number> {
+  const existing = db[key];
+  const current =
+    typeof existing === 'string' ? Number.parseInt(existing, 10) || 0 : 0;
+  const next = current + increment;
+  db[key] = String(next);
+  return next;
+}
+
 const redis = {
   hSet,
   hGet,
   get,
   set,
+  zAdd,
+  zCard,
+  zRange,
+  zScore,
+  zRem,
   hGetAll: async (key: string) => {
     const existing = db[key];
     return existing && typeof existing === 'object' && !Array.isArray(existing)
       ? (existing as Record<string, string>)
       : {};
   },
-  zRange: async () => [],
   zIncrBy: async () => undefined,
-  zScore: async () => -1,
-  zRem: async () => undefined,
-  incrBy: async () => undefined,
+  incrBy,
 };
 
 const createServer = (_handler: unknown) => ({
