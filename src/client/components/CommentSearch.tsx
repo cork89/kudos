@@ -102,7 +102,7 @@ export function CommentSearch({ onSearch }: CommentSearchProps) {
               className="home-comment-search-input"
               type="text"
               value={value}
-              placeholder="comment42"
+              placeholder="enter code here"
               autoComplete="off"
               spellCheck={false}
               aria-invalid={error ? true : undefined}

@@ -1,4 +1,6 @@
 import {
+  memo,
+  useCallback,
   useEffect,
   useEffectEvent,
   useRef,
@@ -54,7 +56,7 @@ function getInitials(name?: string) {
   return initials || '??';
 }
 
-function PaperclipIcon() {
+const PaperclipIcon = memo(function PaperclipIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -70,9 +72,13 @@ function PaperclipIcon() {
       />
     </svg>
   );
-}
+});
 
-function CommentEntry({ comment }: { comment: PreviewComment }) {
+const CommentEntry = memo(function CommentEntry({
+  comment,
+}: {
+  comment: PreviewComment;
+}) {
   const openComment = () => {
     navigateTo({ url: comment.url, permalink: comment.permalink });
   };
@@ -103,7 +109,7 @@ function CommentEntry({ comment }: { comment: PreviewComment }) {
       <p className="comment-text">{comment.body}</p>
     </div>
   );
-}
+});
 
 function hashSeed(seed: string): number {
   let hash = 0;
@@ -118,19 +124,21 @@ function randomDefaultImage(seed: string) {
   return `bg${randomNum}`;
 }
 
-function PreviewFrame({
-  preview,
-  settings,
-  className,
-  onAnimationEnd,
-}: {
+type PreviewFrameProps = {
   preview: PreviewData;
   settings?: PostSettings | undefined;
   className?: string | undefined;
   onAnimationEnd?:
     | ((event: AnimationEvent<HTMLDivElement>) => void)
     | undefined;
-}) {
+};
+
+const PreviewFrame = memo(function PreviewFrame({
+  preview,
+  settings,
+  className,
+  onAnimationEnd,
+}: PreviewFrameProps) {
   const themeClass = settings?.theme === 'light' ? 'light-theme' : '';
   const positionClass = settings?.position
     ? `pos-${settings.position}`
@@ -144,7 +152,10 @@ function PreviewFrame({
     >
       <div className="preview-slide-image">
         <img
-          src={preview.post.imageUrl ?? `/${randomDefaultImage(preview.commentId)}.webp`}
+          src={
+            preview.post.imageUrl ??
+            `/${randomDefaultImage(preview.commentId)}.webp`
+          }
           alt={preview.post.title ?? 'preview'}
         />
       </div>
@@ -165,9 +176,9 @@ function PreviewFrame({
       </div>
     </div>
   );
-}
+});
 
-export function Preview({
+function PreviewComponent({
   preview,
   settings,
   fallbackText,
@@ -249,14 +260,23 @@ export function Preview({
     return () => cancelAnimationFrame(frame);
   }, [animState.layers]);
 
-  const handleSlideEnd = (event: AnimationEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget || animState.isBlurFading) {
-      return;
-    }
+  const handleSlideEnd = useCallback(
+    (event: AnimationEvent<HTMLDivElement>) => {
+      if (event.target !== event.currentTarget) {
+        return;
+      }
 
-    setAnimState((current) => ({ ...current, isBlurFading: true }));
-    onSlideMotionComplete?.();
-  };
+      setAnimState((current) => {
+        if (current.isBlurFading) {
+          return current;
+        }
+
+        onSlideMotionComplete?.();
+        return { ...current, isBlurFading: true };
+      });
+    },
+    [onSlideMotionComplete]
+  );
 
   if (!preview) {
     return (
@@ -311,3 +331,5 @@ export function Preview({
     </div>
   );
 }
+
+export const Preview = memo(PreviewComponent);
