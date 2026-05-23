@@ -13,7 +13,8 @@
   "permissions": {
     "redis": true,
     "reddit": {
-      "enable": true
+      "enable": true,
+      "asUser": ["SUBMIT_COMMENT"]
     }
   },
   "media": {
@@ -33,14 +34,14 @@
         "endpoint": "/internal/menu/post-create"
       },
       {
-        "label": "Add to Commenteer",
+        "label": "Add to Kudos",
         "description": "",
         "location": "comment",
         "forUserType": "user",
-        "endpoint": "/internal/menu/add-to-commenteer"
+        "endpoint": "/internal/menu/add-to-kudos"
       },
       {
-        "label": "Set Commenteer Post",
+        "label": "Set Kudos Post",
         "description": "",
         "location": "post",
         "forUserType": "moderator",

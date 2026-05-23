@@ -11,6 +11,7 @@ import type {
   PostSettings,
 } from '../../shared/types/api';
 import type { SlideDirection } from '../lib/preview';
+import { navigateTo } from '@/devvit/web/client';
 
 export type { SlideDirection };
 
@@ -53,7 +54,29 @@ function getInitials(name?: string) {
   return initials || '??';
 }
 
+function PaperclipIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="1.5"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+      />
+    </svg>
+  );
+}
+
 function CommentEntry({ comment }: { comment: PreviewComment }) {
+  const openComment = () => {
+    navigateTo({ url: comment.url, permalink: comment.permalink });
+  };
+
   return (
     <div className="comment-entry">
       <div className="comment-header">
@@ -64,7 +87,18 @@ function CommentEntry({ comment }: { comment: PreviewComment }) {
             <span>{getInitials(comment.authorName)}</span>
           )}
         </div>
-        <span className="comment-author">{comment.authorName}</span>
+        <div className="comment-author-row">
+          <span className="comment-author">{comment.authorName}</span>
+          <button
+            type="button"
+            className="comment-link"
+            aria-label={`Open ${comment.authorName}'s comment on Reddit`}
+            title="Open comment on Reddit"
+            onClick={openComment}
+          >
+            <PaperclipIcon />
+          </button>
+        </div>
       </div>
       <p className="comment-text">{comment.body}</p>
     </div>

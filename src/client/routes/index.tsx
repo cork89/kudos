@@ -85,7 +85,7 @@ function HomePage() {
             <button
               className="home-nav-btn"
               type="button"
-              aria-label="Newer save"
+              aria-label="Go to previous"
               disabled={!canGoUp}
               onClick={goUp}
             >
@@ -107,6 +107,7 @@ function HomePage() {
                 className="home-action-btn"
                 to="/edit/$commentId"
                 params={{ commentId: preview.commentId }}
+                aria-label="Edit"
               >
                 <span className="home-action-btn-icon">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,13 +119,13 @@ function HomePage() {
                     />
                   </svg>
                 </span>
-                Edit
               </Link>
             ) : null}
             <button
               className="home-action-btn"
               type="button"
               onClick={() => setViewMode(true)}
+              aria-label="Hide the controls"
             >
               <span className="home-action-btn-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,14 +137,13 @@ function HomePage() {
                   />
                 </svg>
               </span>
-              Hide
             </button>
           </div>
           {showNavigation ? (
             <button
               className="home-nav-btn"
               type="button"
-              aria-label="Older save"
+              aria-label="Show next"
               disabled={!canGoDown || isLoadingMore}
               onClick={() => void goDown()}
             >

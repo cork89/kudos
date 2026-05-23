@@ -31,6 +31,8 @@ export type PreviewComment = {
   authorName: string;
   authorId: string;
   snoovatarUrl?: string | undefined;
+  url: string;
+  permalink: string;
 };
 
 export type PreviewPost = {

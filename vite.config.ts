@@ -10,6 +10,8 @@ const clientRoot = resolve(rootDir, 'src/client');
 const localServerEntry = resolve(rootDir, 'src/server/index.ts');
 const productionServerEntry = resolve(rootDir, 'src/server/index.ts');
 const devvitServerMock = resolve(rootDir, 'src/server/devvit/devvit.mock.ts');
+const devvitClientMock = resolve(rootDir, 'src/client/devvit/devvit.mock.ts');
+const devvitClient = resolve(rootDir, 'src/client/devvit/devvit.client.ts');
 
 function localApiPlugin(): Plugin {
   type LocalAppModule = {
@@ -126,7 +128,10 @@ export default defineConfig({
   root: clientRoot,
   publicDir: resolve(rootDir, 'assets'),
   resolve: {
-    alias: useMocks ? { '@devvit/web/server': devvitServerMock } : undefined,
+    alias: {
+      '@/devvit/web/client': useMocks ? devvitClientMock : devvitClient,
+      ...(useMocks ? { '@devvit/web/server': devvitServerMock } : {}),
+    },
   },
   plugins: [
     react(),

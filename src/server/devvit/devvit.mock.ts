@@ -97,6 +97,8 @@ const reddit = {
         body: 'Anyone else think cassowaries are underrated?',
         authorId: 't2_parent',
         authorName: 'parent_user',
+        url: 'https://www.reddit.com/r/ssr_test2_dev/comments/post01/comment/parent123/',
+        permalink: '/r/ssr_test2_dev/comments/post01/comment/parent123/',
       } as unknown as Comment;
     }
 
@@ -109,6 +111,8 @@ const reddit = {
       body: `Save #${index}: cassowary has entered the chat`,
       authorId: 't2_author',
       authorName: `test_user_${index}`,
+      url: `https://www.reddit.com/r/ssr_test2_dev/comments/post${String(index).padStart(2, '0')}/comment/${commentId.replace(/^t1_/, '')}/`,
+      permalink: `/r/ssr_test2_dev/comments/post${String(index).padStart(2, '0')}/comment/${commentId.replace(/^t1_/, '')}/`,
     } as unknown as Comment;
   },
   getPostById: async (postId: `t3_${string}`): Promise<Post> => {

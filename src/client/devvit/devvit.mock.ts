@@ -1,5 +1,21 @@
-function navigateTo(url: string) {
-  window.location.href = url;
+type NavigateTarget =
+  | string
+  | {
+      readonly url: string;
+      readonly permalink?: string;
+    };
+
+function navigateTo(target: NavigateTarget) {
+  if (typeof target === 'string') {
+    window.location.href = target;
+    return;
+  }
+
+  const url =
+    target.permalink !== undefined
+      ? new URL(target.permalink, 'https://www.reddit.com').toString()
+      : target.url;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 const context = {

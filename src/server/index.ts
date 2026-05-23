@@ -52,6 +52,8 @@ async function toPreviewComment(
     authorName: comment.authorName,
     authorId: comment.authorId as `t2_${string}`,
     snoovatarUrl,
+    url: comment.url,
+    permalink: comment.permalink,
   };
 }
 
@@ -344,7 +346,7 @@ app.post('/api/settings/:commentId/edit', async (c) => {
   return c.json(response);
 });
 
-// DEPRECATED: unused — saves go through /internal/menu/add-to-commenteer.
+// DEPRECATED: unused — saves go through /internal/menu/add-to-kudos.
 app.post('/api/create', async (c) => {
   const userId = context.userId;
   if (!userId) {
@@ -443,7 +445,7 @@ app.post('/internal/menu/set-current', async (c) => {
     });
 
     return c.json({
-      showToast: 'Updated current commenteer post.',
+      showToast: 'Updated current kudos post.',
     });
   } catch (error) {
     console.error('/internal/menu/set-current:', error);
@@ -453,7 +455,7 @@ app.post('/internal/menu/set-current', async (c) => {
   }
 });
 
-app.post('/internal/menu/add-to-commenteer', async (c) => {
+app.post('/internal/menu/add-to-kudos', async (c) => {
   const userId = context.userId;
   if (!userId) {
     return c.json({
@@ -475,13 +477,10 @@ app.post('/internal/menu/add-to-commenteer', async (c) => {
       });
     }
 
-    // await reddit.getCommentById(targetId);
-
     const member = await storeSave(redditCtx, userId, targetId);
     if (!member) {
       return c.json({
-        showToast:
-          'There is no active commenteer post, please contact the mods.',
+        showToast: 'There is no active kudos post, please contact the mods.',
       });
     }
 
@@ -490,18 +489,27 @@ app.post('/internal/menu/add-to-commenteer', async (c) => {
       | null;
     if (!redirectUrl) {
       return c.json({
-        showToast:
-          'There is no active commenteer post, please contact the mods.',
+        showToast: 'There is no active kudos post, please contact the mods.',
       });
     }
 
     const post = await reddit.getPostById(redirectUrl);
     if (!post) {
       return c.json({
-        showToast:
-          'There is no active commenteer post, please contact the mods.',
+        showToast: 'There is no active kudos post, please contact the mods.',
       });
     }
+
+    await reddit
+      .getCommentById(targetId)
+      .then((comment) => {
+        void reddit.submitComment({
+          id: redirectUrl,
+          text: `u/${comment.authorName}, kudos on your contribution :) (search code: ${targetId})`,
+          runAs: 'USER',
+        });
+      })
+      .catch(() => console.error(`failed to add comment for ${targetId}`));
 
     return c.json({
       navigateTo: post,
@@ -509,7 +517,7 @@ app.post('/internal/menu/add-to-commenteer', async (c) => {
   } catch (error) {
     console.error(error);
     return c.json({
-      showToast: 'Failed to add to commenteer :(',
+      showToast: 'Failed to add to kudos :(',
     });
   }
 });

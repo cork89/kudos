@@ -626,10 +626,47 @@ body::after {
   object-fit: cover;
 }
 
+.comment-author-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .comment-author {
   font-family: 'Syne', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.comment-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.comment-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.comment-link:hover {
+  color: var(--accent);
+}
+
+.light-theme .comment-link {
+  color: #6b6b70;
+}
+
+.light-theme .comment-link:hover {
+  color: #7a9200;
 }
 
 .comment-time {
