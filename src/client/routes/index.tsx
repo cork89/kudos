@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMemo, useRef, useState } from 'react';
+import { CommentSearch } from '../components/CommentSearch';
 import { Preview } from '../components/Preview';
 import { usePreviewQuery, useSettingsQuery } from '../lib/queries';
 import { useBlockWheelScroll } from '../lib/useBlockWheelScroll';
@@ -30,6 +31,7 @@ function HomePage() {
     isLoadingMore,
     slideDirection,
     clearSlide,
+    goToCommentId,
   } = usePreviewNavigation(previewResponse);
   const { data: settingsResponse } = useSettingsQuery(preview?.commentId);
   const [viewMode, setViewMode] = useState(false);
@@ -102,6 +104,7 @@ function HomePage() {
             </button>
           ) : null}
           <div className="home-actions-center">
+            <CommentSearch onSearch={goToCommentId} />
             {preview?.canEdit ? (
               <Link
                 className="home-action-btn"

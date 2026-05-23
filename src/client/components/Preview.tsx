@@ -105,6 +105,19 @@ function CommentEntry({ comment }: { comment: PreviewComment }) {
   );
 }
 
+function hashSeed(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function randomDefaultImage(seed: string) {
+  const randomNum = hashSeed(seed) % 7;
+  return `bg${randomNum}`;
+}
+
 function PreviewFrame({
   preview,
   settings,
@@ -131,7 +144,7 @@ function PreviewFrame({
     >
       <div className="preview-slide-image">
         <img
-          src={preview.post.imageUrl ?? '/default-loading.webp'}
+          src={preview.post.imageUrl ?? `/${randomDefaultImage(preview.commentId)}.webp`}
           alt={preview.post.title ?? 'preview'}
         />
       </div>

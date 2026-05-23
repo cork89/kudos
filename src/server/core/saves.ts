@@ -181,7 +181,7 @@ export async function getSaveByCommentId(
 
   const card = await ctx.redis.zCard(postId);
   if (card === 0) {
-    return { status: 'empty', message: 'Save not found.' };
+    return { status: 'empty', message: 'Kudos not found.' };
   }
 
   const entries = await ctx.redis.zRange(postId, 0, card - 1, {
@@ -222,7 +222,7 @@ export async function getSaveByCommentId(
     void ctx.redis.zRem(postId, invalidMembers);
   }
 
-  return { status: 'empty', message: 'Save not found.' };
+  return { status: 'empty', message: 'Kudos not found.' };
 }
 
 export async function getSaveForEdit(
@@ -242,7 +242,7 @@ export async function getSaveForEdit(
   const member = saveMember(commentId, userId);
   const score = await ctx.redis.zScore(postId, member);
   if (score === undefined) {
-    return { status: 'empty', message: 'Save not found.' };
+    return { status: 'empty', message: 'Kudos not found.' };
   }
 
   return {

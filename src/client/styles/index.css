@@ -433,6 +433,95 @@ body::after {
   cursor: not-allowed;
 }
 
+.home-comment-search {
+  position: relative;
+}
+
+.home-comment-search-form {
+  position: absolute;
+  bottom: calc(100% + 0.65rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  background: rgba(10, 10, 11, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.home-comment-search-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.home-comment-search-row {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.home-comment-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.home-comment-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.home-comment-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.home-comment-search-submit {
+  padding: 0.55rem 0.85rem;
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.home-comment-search-submit:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-deep);
+}
+
+.home-comment-search-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.home-comment-search-error {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--coral);
+}
+
 .home-show-toggle {
   position: fixed;
   bottom: 1.5rem;

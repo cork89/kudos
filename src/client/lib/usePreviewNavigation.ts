@@ -7,7 +7,8 @@ import {
 } from 'react';
 import type { ApiPreviewResponse, PreviewData } from '../../shared/types/api';
 import type { SlideDirection } from './preview';
-import { fetchPreview } from './api';
+import { fetchPreview, fetchPreviewByCommentId } from './api';
+import { findCommentSearchIndex } from './commentSearch';
 import { getPreviewCursor, getPreviewList } from './preview';
 import {
   consumePreviewNavigationRestore,
@@ -94,6 +95,13 @@ export function usePreviewNavigation(
   });
 
   navigationRef.current = { items, selectedIndex, cursor, hasMoreOlder };
+
+  useEffect(() => {
+    console.log(
+      'comment ids',
+      items.map((item) => item.commentId)
+    );
+  }, [items]);
 
   useEffect(() => {
     return () => {
@@ -194,6 +202,60 @@ export function usePreviewNavigation(
     setSlideDirection(null);
   }, []);
 
+  const goToCommentId = useCallback(
+    async (
+      query: string
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        return { ok: false, error: 'Enter a comment ID' };
+      }
+
+      const navigateToIndex = (index: number) => {
+        setSlideDirection(
+          index > selectedIndex ? 'down' : index < selectedIndex ? 'up' : null
+        );
+        setSelectedIndex(index);
+      };
+
+      const matchIndex = findCommentSearchIndex(items, trimmed);
+      if (matchIndex >= 0) {
+        navigateToIndex(matchIndex);
+        return { ok: true };
+      }
+
+      const response = await fetchPreviewByCommentId(trimmed);
+      if (response.status !== 'ok') {
+        return {
+          ok: false,
+          error: response.message ?? 'Comment not found',
+        };
+      }
+
+      let targetIndex = -1;
+      setItems((current) => {
+        const duplicateIndex = current.findIndex(
+          (item) => item.commentId === trimmed
+        );
+        if (duplicateIndex >= 0) {
+          targetIndex = duplicateIndex;
+          return current;
+        }
+
+        targetIndex = current.length;
+        return [...current, response.data];
+      });
+
+      if (targetIndex < 0) {
+        return { ok: false, error: 'Comment not found' };
+      }
+
+      navigateToIndex(targetIndex);
+      return { ok: true };
+    },
+    [items, selectedIndex]
+  );
+
   const goUp = useCallback(() => {
     if (selectedIndex <= 0) {
       return;
@@ -257,5 +319,6 @@ export function usePreviewNavigation(
     isLoadingMore,
     slideDirection,
     clearSlide,
+    goToCommentId,
   };
 }
