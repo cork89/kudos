@@ -13,6 +13,13 @@ export function patchSettingsCache(
   });
 }
 
+export function prefetchSettings(queryClient: QueryClient, commentId: string) {
+  return queryClient.prefetchQuery({
+    queryKey: ['settings', commentId],
+    queryFn: () => fetchSettings(commentId),
+  });
+}
+
 export function usePreviewQuery() {
   return useQuery({
     queryKey: ['preview', 'list'],

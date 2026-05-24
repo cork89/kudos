@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import type { SlideDirection } from './preview';
 import { fetchPreview, fetchPreviewByCommentId } from './api';
 import { findCommentSearchIndex } from './commentSearch';
 import { getPreviewCursor, getPreviewList } from './preview';
+import { prefetchSettings } from './queries';
 import {
   consumePreviewNavigationRestore,
   savePreviewNavigationSnapshot,
@@ -64,9 +66,19 @@ function getInitialSnapshot(
   return getSnapshotFromResponse(previewResponse);
 }
 
+function prefetchSettingsForItems(
+  queryClient: ReturnType<typeof useQueryClient>,
+  items: PreviewData[]
+) {
+  for (const item of items) {
+    void prefetchSettings(queryClient, item.commentId);
+  }
+}
+
 export function usePreviewNavigation(
   previewResponse: ApiPreviewResponse | undefined
 ) {
+  const queryClient = useQueryClient();
   const initialSnapshotRef = useRef<NavigationSnapshot | null>(null);
   if (initialSnapshotRef.current === null) {
     initialSnapshotRef.current = getInitialSnapshot(previewResponse);
@@ -160,6 +172,7 @@ export function usePreviewNavigation(
       }
 
       setItems((current) => [...current, ...nextItems]);
+      prefetchSettingsForItems(queryClient, nextItems);
       setCursor(nextCursor);
       const hasMore = nextCursor !== null;
       setHasMoreOlder(hasMore);
@@ -167,7 +180,22 @@ export function usePreviewNavigation(
     } finally {
       setIsLoadingMore(false);
     }
-  }, [cursor, isLoadingMore]);
+  }, [cursor, isLoadingMore, queryClient]);
+
+  const prefetchAdjacentSettings = useCallback(() => {
+    const neighborIds = [
+      items[selectedIndex - 1]?.commentId,
+      items[selectedIndex + 1]?.commentId,
+    ].filter(Boolean) as string[];
+
+    for (const commentId of neighborIds) {
+      void prefetchSettings(queryClient, commentId);
+    }
+  }, [items, queryClient, selectedIndex]);
+
+  useLayoutEffect(() => {
+    prefetchAdjacentSettings();
+  }, [prefetchAdjacentSettings]);
 
   const schedulePrefetch = useCallback(() => {
     if (cursor === null || effectiveHasMoreOlder === false || isLoadingMore) {

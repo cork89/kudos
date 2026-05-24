@@ -139,7 +139,12 @@ const PreviewFrame = memo(function PreviewFrame({
   className,
   onAnimationEnd,
 }: PreviewFrameProps) {
-  const themeClass = settings?.theme === 'light' ? 'light-theme' : '';
+  const themeClass =
+    settings?.theme === 'light'
+      ? 'light-theme'
+      : settings?.theme === 'rave'
+        ? 'rave-theme'
+        : '';
   const positionClass = settings?.position
     ? `pos-${settings.position}`
     : 'pos-center';

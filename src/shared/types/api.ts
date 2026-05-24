@@ -17,7 +17,7 @@ export type CommentPosition =
   | 'bottom-center'
   | 'bottom-right';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'rave';
 
 export interface PostSettings {
   position: CommentPosition;
