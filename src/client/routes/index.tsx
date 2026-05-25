@@ -45,7 +45,7 @@ function HomePage() {
   const fallback =
     previewResponse?.status === 'empty'
       ? previewResponse.message
-      : 'Save a comment to preview it here.';
+      : 'Give kudos on a comment to see it here.';
 
   return (
     <div ref={homeRef} className={`home-page ${viewMode ? 'view-mode' : ''}`}>

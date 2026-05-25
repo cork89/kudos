@@ -648,6 +648,7 @@ body::after {
   &.light-theme {
     --accent-thread: #7a9200;
     --comment-bg: rgba(255, 255, 255, 0.95);
+    --comment-fade-color: rgba(255, 255, 255, 0.95);
     --comment-border: rgba(100, 100, 100, 0.3);
     --comment-shadow:
       0 4px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05) inset;
@@ -716,6 +717,7 @@ body::after {
     }
 
     .comment-text {
+      --comment-fade-color: var(--comment-text-bg);
       background: var(--comment-text-bg);
       border: 2px solid var(--comment-text-border);
       border-radius: 4px 12px 4px 12px;
@@ -860,7 +862,53 @@ body::after {
 }
 
 .comment-text {
+  --comment-clamp-lines: 4;
+  --comment-fade-color: var(--comment-bg);
+  position: relative;
   font-size: 0.8rem;
   line-height: 1.6;
   color: var(--comment-body);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--comment-clamp-lines);
+  line-clamp: var(--comment-clamp-lines);
+  overflow: hidden;
+}
+
+.comment-text-clamp-compact {
+  --comment-clamp-lines: 2;
+}
+
+.comment-text.is-truncated {
+  --comment-fade-mask: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 1.75em),
+    transparent 100%
+  );
+}
+
+.comment-stack:not(.light-theme):not(.rave-theme) .comment-text.is-truncated {
+  -webkit-mask-image: var(--comment-fade-mask);
+  mask-image: var(--comment-fade-mask);
+}
+
+.comment-text.is-truncated::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1.6em;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--comment-fade-color)
+  );
+  pointer-events: none;
+}
+
+.comment-stack:not(.light-theme):not(.rave-theme)
+  .comment-text.is-truncated::after {
+  display: none;
 }

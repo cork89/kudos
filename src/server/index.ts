@@ -169,7 +169,7 @@ async function buildPreviewList(
   if (collected.length === 0) {
     return {
       status: 'empty',
-      message: 'No saved posts yet.',
+      message: 'Give kudos on a comment to see it here.',
     };
   }
 

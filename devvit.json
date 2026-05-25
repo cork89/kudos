@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "ssr-test2",
+  "name": "mod-kudos",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -28,7 +28,7 @@
     "items": [
       {
         "label": "Create a new post",
-        "description": "ssr-test2",
+        "description": "Kudos",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"
@@ -53,6 +53,6 @@
     "onAppInstall": "/internal/on-app-install"
   },
   "dev": {
-    "subreddit": "ssr_test2_dev"
+    "subreddit": "mod_kudos_dev"
   }
 }

@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
   type AnimationEvent,
@@ -76,12 +77,38 @@ const PaperclipIcon = memo(function PaperclipIcon() {
 
 const CommentEntry = memo(function CommentEntry({
   comment,
+  clamp = 'default',
 }: {
   comment: PreviewComment;
+  clamp?: 'default' | 'compact';
 }) {
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = textRef.current;
+    if (!element) {
+      return;
+    }
+
+    const measure = () => {
+      setIsTruncated(element.scrollHeight > element.clientHeight + 1);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [comment.body]);
+
   const openComment = () => {
     navigateTo({ url: comment.url, permalink: comment.permalink });
   };
+
+  const clampClass =
+    clamp === 'compact'
+      ? 'comment-text-clamp-compact'
+      : 'comment-text-clamp-default';
 
   return (
     <div className="comment-entry">
@@ -106,7 +133,13 @@ const CommentEntry = memo(function CommentEntry({
           </button>
         </div>
       </div>
-      <p className="comment-text">{comment.body}</p>
+      <p
+        ref={textRef}
+        className={`comment-text ${clampClass}${isTruncated ? ' is-truncated' : ''}`.trim()}
+        title={isTruncated ? comment.body : undefined}
+      >
+        {comment.body}
+      </p>
     </div>
   );
 });
@@ -169,7 +202,7 @@ const PreviewFrame = memo(function PreviewFrame({
       >
         {hasParent && preview.parentComment ? (
           <>
-            <CommentEntry comment={preview.parentComment} />
+            <CommentEntry comment={preview.parentComment} clamp="compact" />
             <div className="comment-thread">
               <div className="thread-line" aria-hidden="true" />
               <CommentEntry comment={preview.comment} />
@@ -289,11 +322,11 @@ function PreviewComponent({
         <div className="comment-stack comment-stack-solo pos-center">
           <div className="comment-entry">
             <div className="comment-header">
-              <div className="comment-avatar">??</div>
-              <span className="comment-author">No data</span>
+              <div className="comment-avatar">:)</div>
+              <span className="comment-author">Welcome to Mod Kudos!</span>
             </div>
             <p className="comment-text">
-              {fallbackText ?? 'Save a comment to preview it here.'}
+              {fallbackText ?? 'Give kudos on a comment to see it here.'}
             </p>
           </div>
         </div>

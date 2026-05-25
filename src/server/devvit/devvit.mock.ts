@@ -83,6 +83,8 @@ function parsePostIndex(postId: string): number {
   return match?.[1] ? Number.parseInt(match[1], 10) : 1;
 }
 
+const longCommentBody = `Save #1: cassowary has entered the chat. I don't think people appreciate how fast these birds actually are — they can hit 31 mph through dense rainforest undergrowth, which is frankly rude for something that looks like a turkey wearing a motorcycle helmet. Their middle claw is basically a dagger attached to a dinosaur that decided cardio was optional. Every time someone says "just avoid them," I want to show them footage of a cassowary clearing a fence like it owed them money. Anyway, this is my official stance: cassowaries are underrated, terrifying, and probably judging us from the tree line right now.`;
+
 const reddit = {
   submitCustomPost: async ({ title }: { title: string }) => ({
     id: 'abc123',
@@ -107,8 +109,12 @@ const reddit = {
     return {
       id: commentId,
       postId: postIdForIndex(index),
-      parentId: index % 2 === 0 ? 't1_parent123' : postIdForIndex(index),
-      body: `Save #${index}: cassowary has entered the chat`,
+      parentId:
+        index === 1 || index % 2 === 0 ? 't1_parent123' : postIdForIndex(index),
+      body:
+        index === 1
+          ? longCommentBody
+          : `Save #${index}: cassowary has entered the chat`,
       authorId: 't2_author',
       authorName: `test_user_${index}`,
       url: `https://www.reddit.com/r/ssr_test2_dev/comments/post${String(index).padStart(2, '0')}/comment/${commentId.replace(/^t1_/, '')}/`,
