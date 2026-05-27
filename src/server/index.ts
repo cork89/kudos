@@ -414,6 +414,28 @@ app.post('/api/create', async (c) => {
   }
 });
 
+app.post('/internal/on-app-install', async (c) => {
+  try {
+    await createPost();
+    return c.json(
+      {
+        status: 'success',
+        message: 'Created post',
+      },
+      201
+    );
+  } catch (error) {
+    console.error('Error creating post:', error);
+    return c.json(
+      {
+        status: 'error',
+        message: 'Failed to create post',
+      },
+      500
+    );
+  }
+});
+
 app.post('/internal/menu/post-create', async (c) => {
   try {
     const post = await createPost();
