@@ -24,7 +24,7 @@ Then that comment would show up in the Kudos post (along with the parent comment
 
 This project uses [vite plus](https://viteplus.dev/) for its build system so the quick start includes (expects pnpm to be installed).
 
-```
+```sh
 vp install
 vp dev
 ```
@@ -32,6 +32,14 @@ vp dev
 which will install the dependencies and start the dev server which is accessible at localhost:7474 by default.
 
 For local dev, make sure the .env contains `USE_MOCKS=true` to use mock data otherwise the app won't work because it does not have a devvit context otherwise.
+
+To prepare to deploy to reddit:
+
+```sh
+vp build # builds the frontend
+vp pack  # builds the backend
+npx devvit playtest
+```
 
 For running on reddit via `devvit playtest` or otherwise, make sure `USE_MOCKS=false` is set so it will use real reddit data.
 
