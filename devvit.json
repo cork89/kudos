@@ -34,10 +34,10 @@
         "endpoint": "/internal/menu/post-create"
       },
       {
-        "label": "Add to Kudos",
+        "label": "Give Kudos",
         "description": "",
         "location": "comment",
-        "forUserType": "user",
+        "forUserType": "moderator",
         "endpoint": "/internal/menu/add-to-kudos"
       },
       {

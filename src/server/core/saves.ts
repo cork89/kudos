@@ -109,7 +109,10 @@ export async function getRecentSaves(
 
   const card = await ctx.redis.zCard(postId);
   if (card === 0) {
-    return { status: 'empty', message: 'No saved posts yet.' };
+    return {
+      status: 'empty',
+      message: 'Give kudos on a comment to see it here.',
+    };
   }
 
   let rawEntries: SortedSetEntry[];
@@ -131,7 +134,10 @@ export async function getRecentSaves(
 
   const saves = await parseSaveEntries(ctx, postId, rawEntries);
   if (saves.length === 0) {
-    return { status: 'empty', message: 'No saved posts yet.' };
+    return {
+      status: 'empty',
+      message: 'Give kudos on a comment to see it here.',
+    };
   }
 
   saves.reverse();
@@ -158,7 +164,10 @@ export async function getLatestSave(ctx: RedditContext): Promise<SaveResult> {
 
   const save = recent.saves[0];
   if (!save) {
-    return { status: 'empty', message: 'No saved posts yet.' };
+    return {
+      status: 'empty',
+      message: 'Give kudos on a comment to see it here.',
+    };
   }
 
   return {
